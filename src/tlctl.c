@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------
- * File name: tmsgbx.c
+ * File name: tlctl.c
  * Author: Seree Rakwong
  * Date: 17-SEP-18
  *-----------------------------------------------------------------*/
@@ -13,280 +13,846 @@
 #endif
 
 #include "tui.h"
+
 /*-------------------------------------------------------------------
- * Message box functions
+ * LISTCTRL functions
  *-----------------------------------------------------------------*/
-/*
-struct _MSGBOXSTRUCT
+struct _TLISTCELLSTRUCT
 {
-  TWND  owner;
-  VOID* param;
-  VOID  (*OnOK)(TWND, VOID*);
-  VOID  (*OnYes)(TWND, VOID*);
-  VOID  (*OnNo)(TWND, VOID*);
-  VOID  (*OnCancel)(TWND, VOID*);
-};
-typedef struct _MSGBOXSTRUCT MSGBOXPARAM;
-*/
-
-TWND  _TuiMsgBox(TWND parent, LPCSTR caption, LPCSTR text, UINT flags);
-INT  TMSGBX_OnInitDailog(TWND wnd, LPARAM lparam);
-VOID TMSGBX_OnPaint(TWND wnd, TDC dc);
-VOID TMSGBX_OnCommand(TWND wnd, UINT cmd);
-LONG MSGBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
-
-VOID TMSGBX_OnPaint(TWND wnd, TDC dc)
-{
-  CHAR text[TUI_MAX_WNDTEXT+1];
-  CHAR buf[TUI_MAX_WNDTEXT+1];
-  RECT rc;
+  INT         y;
+  INT         x;
+  CHAR        caption[TUI_MAX_WNDTEXT+1];
+  DWORD       attrs;
+  VOID*       data;
   
-  TuiGetWndRect(wnd, &rc);
-  TuiGetWndText(wnd, text, TUI_MAX_WNDTEXT);
-  TuiPrintTextAlignment(buf, text, rc.cols, ALIGN_CENTER);
-  TuiDrawText(dc, rc.y + 3, rc.x, buf, TuiGetWndTextAttrs(wnd));
+  struct _TLISTCELLSTRUCT *prev;
+  struct _TLISTCELLSTRUCT *next;
+};
+typedef struct _TLISTCELLSTRUCT tlistcell_t;
+
+struct _THEADERSTRUCT
+{
+  INT        id;
+  CHAR       caption[TUI_MAX_WNDTEXT+1];
+  INT        cols;      /* width */  
+  INT        align;     /* left is a default */
+  DWORD      attrs;
+  
+  tlistcell_t*    firstcell;
+  tlistcell_t*    lastcell;
+
+  struct _THEADERSTRUCT *prev;
+  struct _THEADERSTRUCT *next;
+};
+typedef struct _THEADERSTRUCT theader_t;
+
+struct _TLISTCTRLSTRUCT
+{
+  theader_t* firsthdr;
+  theader_t* lasthdr;
+  theader_t* firstvisiblehdr;
+  theader_t* lastvisiblehdr;
+
+  INT        nheaders;
+  INT        nitems;
+  INT        hdrids;      /* header id */
+  INT        hdrallwidths;
+  /* item control */
+  INT        curselrow;
+  INT        curselcol;
+  INT        firstvisibleitem;
+  
+  TWND       editbox;
+};
+typedef struct _TLISTCTRLSTRUCT _TLISTCTRL;
+typedef struct _TLISTCTRLSTRUCT *TLISTCTRL;
+
+theader_t*   _TLCTL_FindHeaderByIndex(TLISTCTRL lctl, INT col);
+tlistcell_t* _TLCTL_FindCellByIndex(TLISTCTRL lctl, INT col, INT idx);
+tlistcell_t* _TLCTL_FindCellByHeader(TLISTCTRL lctl, theader_t* header, INT idx);
+LONG         _TLCTL_GetCellRect(TLISTCTRL lctl, INT col, INT idx, RECT* rect);
+VOID _TLCTL_DrawItem(
+  TDC dc, RECT* rccell, LPCSTR caption, DWORD attrs, INT align, INT isheader);
+VOID _TLCTL_OnSelChanged(TWND wnd);
+
+
+LONG LISTCTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
+VOID TLCTL_OnKeyDown(TWND wnd, LONG ch);
+VOID TLCTL_OnPaint(TWND wnd, TDC dc);
+LONG TLCTL_OnAddItem(TWND wnd, LPSTR text, INT nitems);
+VOID TLCTL_OnDeleteAllItems(TWND wnd);
+VOID TLCTL_OnDeleteColumn(TWND wnd, INT col);
+LONG TLCTL_OnAddColumn(TWND wnd, HEADERITEM* hdritem);
+VOID TLCTL_OnDestroy(TWND wnd);
+LONG TLCTL_OnCreate(TWND wnd);
+LONG TLCTL_OnGetItem(TWND wnd, UINT flags, SUBITEM* subitem);
+LONG TLCTL_OnSetItem(TWND wnd, UINT flags, SUBITEM* subitem);
+VOID TLCTL_OnSetFocus(TWND wnd);
+LONG TLCTL_OnKillFocus(TWND wnd);
+
+
+theader_t* _TLCTL_FindHeaderByIndex(TLISTCTRL lctl, INT col)
+{
+  theader_t* header = 0;
+  INT i;
+  
+  if (col < 0 || col >= lctl->nheaders)
+  {
+    return 0; /* no header deleted */
+  }
+  
+  header = lctl->firsthdr;
+  for (i = 0; i == col && i < lctl->nheaders; ++i)
+  {
+    header = header->next;
+  }
+  return header;
 }
 
-INT  TMSGBX_OnInitDailog(TWND wnd, LPARAM lparam)
+tlistcell_t* _TLCTL_FindCellByIndex(TLISTCTRL lctl, INT col, INT idx)
 {
-  MSGBOXPARAM *msgbx = 0;
-  msgbx = (MSGBOXPARAM*)malloc(sizeof(MSGBOXPARAM));
-  memset(msgbx, 0, sizeof(MSGBOXPARAM));
-  if (lparam)
+  tlistcell_t* cell = 0;
+  theader_t* header = 0;
+  INT i;
+  
+  if (idx < 0 || idx >= lctl->nitems)
   {
-    if (!msgbx)
-    {
-      return TUI_ERROR;
-    }
-    memcpy(msgbx, (MSGBOXPARAM*)lparam, sizeof(MSGBOXPARAM));
+    return 0;
   }
-  TuiSetWndParam(wnd, (LPVOID)msgbx);
+  header = _TLCTL_FindHeaderByIndex(lctl, col);
+  if (header)
+  {
+    cell = header->firstcell;
+    for (i = 0; i == idx && i < lctl->nitems; ++i)
+    {
+      cell = cell->next;
+    }
+  }
+  return cell;
+}
+
+tlistcell_t* _TLCTL_FindCellByHeader(TLISTCTRL lctl, theader_t* header, INT idx)
+{
+  tlistcell_t* cell = 0;
+  INT i;
+  
+  if (idx < 0 || idx >= lctl->nitems)
+  {
+    return 0;
+  }
+
+  if (header)
+  {
+    cell = header->firstcell;
+    for (i = 0; i == idx && i < lctl->nitems; ++i)
+    {
+      cell = cell->next;
+    }
+  }
+  return cell;
+}
+
+LONG _TLCTL_GetCellRect(TLISTCTRL lctl, INT col, INT idx, RECT* rect)
+{
+  /*
+  tlistcell_t* cell = 0;
+  TLISTCTRL lctl = 0;
+  
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  cell = TLCTL_FindCellByIndex(wnd, row, col);
+*/
+  return TUI_OK;
+}
+
+LONG TLCTL_OnCreate(TWND wnd)
+{
+  TLISTCTRL lctl = (TLISTCTRL)malloc(sizeof(_TLISTCTRL));
+  if (!lctl)
+  {
+    return TUI_MEM;
+  }
+  memset(lctl, 0, sizeof(_TLISTCTRL));
+  lctl->hdrids    = 1;
+  lctl->editbox = TuiCreateWnd(EDIT,
+                    "",
+                    TWS_CHILD|TES_AUTOHSCROLL,
+                    0,    /* y */
+                    0,    /* x */
+                    1,    /* lines  */
+                    1,    /* cols   */
+                    wnd,  /* parent */
+                    lctl->hdrids,    /* id */
+                    0);   /* no parameter */
+  if (!lctl->editbox)
+  {
+    free(lctl);
+    return TUI_MEM;
+  }
+  lctl->curselrow = -1;
+  lctl->curselcol = -1;
+  lctl->firstvisibleitem = -1;
+  /* increment child ids */
+  ++lctl->hdrids;
+  
+  /* save memory */
+  TuiSetWndParam(wnd, (LPVOID)lctl);
   return TUI_CONTINUE;
 }
 
-VOID TMSGBX_OnCommand(TWND wnd, UINT cmd)
+VOID _TLCTL_OnSelChanged(TWND wnd)
 {
-  MSGBOXPARAM *msgbx = TuiGetWndParam(wnd);
-  if (msgbx)
+  NMHDR nmhdr;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_SELCHANGED;
+
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+}
+
+VOID TLCTL_OnSetFocus(TWND wnd)
+{
+  NMHDR nmhdr;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_SETFOCUS;
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+}
+
+LONG TLCTL_OnKillFocus(TWND wnd)
+{
+  NMHDR nmhdr;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_KILLFOCUS;
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+
+  return TUI_CONTINUE;
+}
+
+VOID TLCTL_OnDestroy(TWND wnd)
+{
+  TLISTCTRL lctl = 0;
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  
+  TLC_DeleteAllColumns(wnd);
+  free(lctl);
+}
+
+LONG TLCTL_OnAddColumn(TWND wnd, HEADERITEM* hdritem)
+{
+  TLISTCTRL lctl = 0;
+  theader_t* header = 0;
+  RECT rc;
+  
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  
+  if (lctl->nitems > 0)
   {
-    switch (cmd)
-    {
-      case MB_OK:
-      {
-        if (msgbx->OnOK)
-        {
-          msgbx->OnOK(msgbx->owner, msgbx->param);
-        }
-        break;
-      }
-      case MB_YES:
-      {
-        if (msgbx->OnYes)
-        {
-          msgbx->OnYes(msgbx->owner, msgbx->param);
-        }
-        break;
-      }
-      case MB_NO:
-      {
-        if (msgbx->OnNo)
-        {
-          msgbx->OnNo(msgbx->owner, msgbx->param);
-        }
-        break;
-      }
-      case MB_CANCEL:
-      {
-        if (msgbx->OnCancel)
-        {
-          msgbx->OnCancel(msgbx->owner, msgbx->param);
-        }
-        break;
-      }
-    }
+    /* not allowed to add header after there are any items */
+    return TUI_ERROR;
+  }
+
+  header = (theader_t*)malloc(sizeof(theader_t));
+  if (!header)
+  {
+    return TUI_MEM;
+  }
+  memset(header, 0, sizeof(theader_t));
+  
+  TuiGetWndRect(TuiGetParent(wnd), &rc);
+  /*header->caption = hdritem->caption;*/
+  strncpy(header->caption,
+    hdritem->caption,
+    MIN(TUI_MAX_WNDTEXT, strlen(hdritem->caption)));
+  header->cols    = hdritem->cols;
+  header->align   = hdritem->align;
+  header->attrs   = hdritem->attrs;
+  header->id      = lctl->hdrids;
+ 
+  /* make link */
+  if (lctl->firsthdr)
+  {
+    header->prev = lctl->lasthdr;
+    lctl->lasthdr->next = header;
+    lctl->lasthdr = header;
+  }
+  else
+  {
+    lctl->firsthdr = lctl->lasthdr = header;
+    lctl->firstvisiblehdr = header;
+  }
+  /* increment child ids */
+  ++lctl->hdrids;
+  ++lctl->nheaders;
+  lctl->hdrallwidths += header->cols;
+  
+  return 0;
+}
+
+VOID TLCTL_OnDeleteColumn(TWND wnd, INT col)
+{
+  TLISTCTRL lctl = 0;
+  theader_t* next = 0;
+  tlistcell_t* cell = 0;
+  tlistcell_t* nextcell = 0;
+  theader_t* header = 0;
+  
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  header = _TLCTL_FindHeaderByIndex(lctl, col);
+  if (!header)
+  {
+    return;
+  }
+
+  /* re-link */
+  next = header->next;
+  if (next)
+  {
+    next->prev = header->prev;
+  }
+  if (header->prev)
+  {
+    header->prev->next = next;
+  }
+  
+  if (header == lctl->firsthdr)
+  {
+    lctl->firsthdr = next;
+  }
+  else if (header == lctl->lasthdr)
+  {
+    lctl->lasthdr = header->prev;
+  }
+  /* delete */
+  header->next = header->prev = 0;
+
+  cell = header->firstcell;
+  while (cell)
+  {
+    nextcell = cell->next;
+    /*free(cell->caption);*/
+    cell->next = cell->prev = 0;
+    free(cell);
+    cell = nextcell;
+  }
+
+  free(header);
+
+  /* done */
+  --lctl->nheaders;
+}
+
+VOID TLCTL_OnDeleteAllItems(TWND wnd)
+{
+  INT nitems = 0;
+  INT i = 0;
+  TLISTCTRL lctl = 0;
+
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  nitems = lctl->nheaders;
+  for (i = 0; i < nitems; ++i)
+  {
+    TuiSendMsg(wnd, TLCM_DELETEITEM, 0, 0);
   }
 }
 
-LONG MSGBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
+VOID TLC_OnDeleteItem(TWND wnd, INT idx)
 {
-  switch (msg)
+  TLISTCTRL lctl = 0;
+  tlistcell_t* cell = 0;
+  tlistcell_t* nextcell = 0;
+  theader_t* header = 0;
+  
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  if (lctl->nitems <= 0 || idx < 0 || idx >= lctl->nitems)
   {
-    case TWM_INITDIALOG:
+    return;
+  }
+  
+  header = lctl->firsthdr;
+  while (header)
+  {
+    cell = _TLCTL_FindCellByHeader(lctl, header, idx);
+    nextcell = cell->next;
+    if (nextcell)
     {
-      TWND btn = TuiGetFirstActiveChildWnd(wnd);
-      if (btn)
-      {
-        TuiSetFocus(btn);
-      }
-#ifdef __USE_CURSES__
-      TuiSendMsg(wnd, TWM_SETTEXTATTRS, (WPARAM)(A_REVERSE), (LPARAM)0);
-#endif
-      return TMSGBX_OnInitDailog(wnd, lparam);
+      nextcell->prev = cell->prev;
+    }
+    if (cell->prev)
+    {
+      cell->prev->next = nextcell;
+    }
+    if (header->firstcell == cell)
+    {
+      header->firstcell = cell->next;
+    }
+    else if (header->lastcell == cell)
+    {
+      header->lastcell = cell->prev;
     }
     
-    case TWM_PAINT:
+    cell->next = cell->prev = 0;
+    free(cell);
+    /* next header */
+    header = header->next;
+  }
+  --lctl->nitems;
+}
+
+LONG TLCTL_OnAddItem(TWND wnd, LPSTR text, INT nitems)
+{
+  TLISTCTRL lctl = 0;
+  INT i = 0;
+  CHAR* tok;
+  theader_t* header = 0;
+  CHAR buf[TUI_MAX_WNDTEXT+1];
+  tlistcell_t* newcell = 0;
+
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  if (lctl->nheaders > 0)
+  {
+    /* insert into all listboxes */
+    header = lctl->firsthdr;
+    
+    strcpy(buf, text);
+    tok = strtok(buf, "\t");
+    while (tok && i < nitems && i < lctl->nheaders)
     {
-      TMSGBX_OnPaint(wnd, TuiGetDC(wnd));
-      return 0;
+      newcell = (tlistcell_t*)malloc(sizeof(tlistcell_t));
+      if (!newcell)
+      {
+        break;
+      }
+      memset(newcell, 0, sizeof(tlistcell_t));
+      strncpy(newcell->caption, tok, MIN(TUI_MAX_WNDTEXT, strlen(tok)));
+      
+      /* add the new item */
+      if (header->firstcell)
+      {
+        newcell->prev  = header->lastcell;
+        header->lastcell->next = newcell;
+        header->lastcell = newcell;
+      }
+      else
+      {
+        header->firstcell = header->lastcell = newcell;
+
+        lctl->firstvisibleitem   = 0;
+      }
+      /* insert next */
+      header = header->next;
+      tok = strtok(0, "\t");
+      ++i;
+    }
+    /* all items count */
+    ++lctl->nitems;
+
+  } /* have header */
+  return lctl->nitems;
+}
+
+VOID _TLCTL_DrawItem(
+  TDC dc, RECT* rccell, LPCSTR caption, DWORD attrs, INT align, INT isheader)
+{
+  LONG len = 0;
+  CHAR buf[TUI_MAX_WNDTEXT+1];
+  len = TuiPrintTextAlignment(buf, 
+          caption,
+          rccell->cols,
+          align);
+  /* is is a header */
+  if (isheader)
+  {
+    buf[0] = '[';
+    buf[len - 1] = ']';
+  }
+
+  TuiDrawText(dc,
+    rccell->y,
+    rccell->x,
+    buf,
+    attrs); 
+}
+
+VOID TLCTL_OnPaint(TWND wnd, TDC dc)
+{
+  TLISTCTRL lctl = 0;
+  theader_t* header = 0;
+  INT width = 0;
+  RECT rcitem, rcwnd, rccell;
+  DWORD attrs = 0;
+  DWORD hdrattrs = 0;
+  tlistcell_t* visiblecell = 0;
+  INT i = 0;
+  INT forcewidth = 0;
+
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  
+  /* if no headers or control is hiding */
+  if (lctl->nheaders <= 0 || !TuiIsWndVisible(wnd))
+  {
+    return;
+  }
+
+  /* draw headers */
+  TuiGetWndRect(wnd, &rcwnd);
+  rcitem = rcwnd; /* copy some values */
+  rcitem.lines = 1;
+  
+  header = lctl->firstvisiblehdr;  
+  width  = header->cols;
+  
+  /* first column width must not be over window columns */
+  if (width > rcwnd.cols)
+  {
+    width = rcwnd.cols - 1;
+    forcewidth = 1;
+  }
+  
+  while (header && width < rcwnd.cols)
+  {    
+    rcitem.x    = rcwnd.x + width - header->cols;
+    rcitem.cols = header->cols;
+    if (rcitem.x < 0)
+    {
+      rcitem.x = rcwnd.x;
+      if (forcewidth == 1)
+      {
+        rcitem.cols = width;
+      }
+      else
+      {
+        --rcitem.cols;
+      }
     }
 
-    case TWM_COMMAND:
+    attrs = header->attrs;
+    hdrattrs = attrs;
+#ifdef __USE_CURSES__
+    attrs |= A_REVERSE;
+#elif defined __USE_QIO__
+    attrs = 0;
+#endif
+    _TLCTL_DrawItem(dc, &rcitem, 
+      header->caption, attrs, ALIGN_CENTER, 1);
+
+    /* draw cells */
+    rccell = rcitem;
+    rccell.y += 1;
+    rccell.lines = 1;
+    visiblecell = header->firstcell;
+    for (i = 0; i < lctl->nitems && visiblecell;
+        ++i, visiblecell = visiblecell->next)
     {
-      TMSGBX_OnCommand(wnd, (UINT)wparam);
-      TuiEndDlg(wnd, (UINT)wparam);
+      if (i < lctl->firstvisibleitem)
+      {
+        /* do nothing */
+        continue;
+      }
+      else if (i - lctl->firstvisibleitem <= rcwnd.lines - 2)
+      {
+
+        attrs = visiblecell->attrs;
+#ifdef __USE_CURSES__
+        if (i == lctl->curselrow)
+        {
+          attrs = A_REVERSE|COLOR_PAIR(CYAN_BLACK);
+#elif defined __USE_QIO__
+        
+#endif
+        }
+        /* draw th item that it can be seen */
+        _TLCTL_DrawItem(dc, &rccell, 
+          visiblecell->caption, attrs, header->align, 0);
+
+        /* next cell line */
+        ++rccell.y;
+      }
+      else
+      {
+        /* no need to draw more items than client lines */
+        break;
+      }
+    } /* for each drawing cell */
+    
+    
+    /* draw next header */
+    header = header->next;
+    if (header)
+    {
+      width += header->cols;
+      if (width > rcwnd.cols)
+      {
+        break;
+      }
+    }
+  } /* while header */
+  
+  /* print arrow controls */
+#ifdef __USE_CURSES__
+  attrs = hdrattrs | A_REVERSE;
+#elif defined __USE_QIO__
+  attrs = 0;
+#endif
+  if (lctl->firsthdr != lctl->firstvisiblehdr)
+  {
+    TuiPutChar(dc, rcwnd.y, rcwnd.x + 1, '<', attrs);
+  }
+  /* save the last visible */
+  if (header)
+  {
+    lctl->lastvisiblehdr = header->prev;
+    TuiPutChar(dc, rcwnd.y, 
+      rcwnd.x + width - header->cols - 2, '>', attrs);
+  }
+  else
+  {
+    lctl->lastvisiblehdr = lctl->lasthdr;
+  }
+
+  TuiMoveYX(dc, rcitem.y,
+      rcitem.x);
+}
+
+VOID TLCTL_OnKeyDown(TWND wnd, LONG ch)
+{
+  TLISTCTRL lctl = 0;
+  INT repaint = 1;
+  RECT rc;
+  INT lines = 0;
+  
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  TuiGetWndRect(wnd, &rc);
+  
+  if (lctl->nheaders <= 0)
+  {
+    return;
+  }
+  
+  switch (ch)
+  {
+    case TVK_SPACE:
+    {
+      /*repaint = 1;*/
+      break;
+    }
+
+    case KEY_RIGHT:
+    {
+      if (lctl->lastvisiblehdr != lctl->lasthdr)
+      {
+        lctl->firstvisiblehdr = lctl->firstvisiblehdr->next;
+        ++repaint;
+      }
+      break;
+    }
+    case KEY_LEFT:
+    {
+      if (lctl->firstvisiblehdr != lctl->firsthdr)
+      {
+        lctl->firstvisiblehdr = lctl->firstvisiblehdr->prev;
+        ++repaint;
+      }
+      break;
+    }
+    case KEY_DOWN:
+    {
+      ++lines;
+      ++repaint;
+      break;
+    }
+  
+    case KEY_UP:
+    {
+      --lines;
+      ++repaint;
+      break;
+    }
+      
+    case TVK_PRIOR:
+#ifdef __USE_CURSES__
+    case KEY_PPAGE:
+#elif (defined __USE_QIO__ && defined __VMS__)
+    case KEY_PREV:
+#endif
+    {
+      lines -= rc.lines - 1;
+      ++repaint;
+      break;
+    }
+    
+    case TVK_NEXT:
+#ifdef __USE_CURSES__
+    case KEY_NPAGE:
+#elif (defined __USE_QIO__ && defined __VMS__)
+    case KEY_NEXT:
+#endif
+    {
+      lines += rc.lines - 1;
+      ++repaint;
       break;
     }
   }
-  return TuiDefWndProc(wnd, msg, wparam, lparam);
-}
-
-TWND  _TuiMsgBox(TWND parent, LPCSTR caption, LPCSTR text, UINT flags)
-{
-  TWND box = 0;
-  RECT rect;
-  LONG caplen = 0, textlen = 0, wndwidth = 0;
-  LONG nbtns = 0;
-  LONG btnwidth = 0;
-  INT  i;
-  
-  enum
+  if (repaint)
   {
-    Msgbox  = 0,
-    CaptionStatic,
-    YesButton,
-    NoButton,
-    OKButton,
-    CancelButton,
-    EmptyCtl
-  };
-  WNDTEMPL msgbox[] =
-  {
-    { MSGBOX, text, 0,  0,  1,  7,  1, TWS_WINDOW, 0 },
-    /* text */
-    { STATIC, caption,  MB_CAPTION, 0,  0,  1,   1, TWS_CHILD|TWS_VISIBLE|TSS_CENTER, 0 },
-    /* buttons */
-    { BUTTON, "Yes",    MB_YES,     0,  0,  1,  13, TWS_CHILD, 0 },
-    { BUTTON, "No",     MB_NO,      0,  0,  1,  12, TWS_CHILD, 0 },
-    { BUTTON, "OK",     MB_OK,      0,  0,  1,  12, TWS_CHILD, 0 },
-    { BUTTON, "Cancel", MB_CANCEL,  0,  0,  1,  12, TWS_CHILD, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0 }
-  };
-
-  /* calculate window width */
-  if (flags & MB_YES)
-  {
-    msgbox[YesButton].style |= TWS_VISIBLE;
-    ++nbtns;
-    btnwidth += msgbox[YesButton].cols + 2;
-  }
-  else
-  {
-    msgbox[YesButton].style &= ~TWS_VISIBLE;
-  }
-  if (flags & MB_NO)
-  {
-    msgbox[NoButton].style |= TWS_VISIBLE;
-    ++nbtns;
-    btnwidth += msgbox[NoButton].cols + 2;
-  }
-  else
-  {
-    msgbox[NoButton].style &= ~TWS_VISIBLE;
-  }
-  if (flags & MB_OK)
-  {
-    msgbox[OKButton].style |= TWS_VISIBLE;
-    ++nbtns;
-    btnwidth += msgbox[OKButton].cols + 2;
-  }
-  else
-  {
-    msgbox[OKButton].style &= ~TWS_VISIBLE;
-  }
-  if (flags & MB_CANCEL)
-  {
-    msgbox[CancelButton].style |= TWS_VISIBLE;
-    btnwidth += msgbox[CancelButton].cols + 2;
-    ++nbtns;
-  }
-  else
-  {
-    msgbox[CancelButton].style &= ~TWS_VISIBLE;
-  }
-  
-  TuiGetWndRect(parent, &rect);
-  caplen   = strlen(caption);
-  textlen  = strlen(text);
-  wndwidth = MAX(btnwidth, MAX(caplen, textlen));
-  if (wndwidth % 2 == 1)
-  {
-    ++wndwidth;
-  }
-  
-  /* move window to center */
-  msgbox[Msgbox].lines = 7;
-  msgbox[Msgbox].y     = rect.y + (rect.lines - msgbox[Msgbox].lines)/2;
-  msgbox[Msgbox].cols  = wndwidth + 10;
-  msgbox[Msgbox].x     = rect.x + (rect.cols  - msgbox[Msgbox].cols)/2;
-  
-  /* move caption to center */
-  msgbox[CaptionStatic].lines = 1;
-  msgbox[CaptionStatic].y     = 1;
-  msgbox[CaptionStatic].x     = 1;
-  msgbox[CaptionStatic].cols  = msgbox[Msgbox].cols - 2;
-  
-  /* move buttons to center */
-  if (nbtns > 0)
-  {
-    INT x = (msgbox[Msgbox].cols - btnwidth)/2;
-    for (i = YesButton; nbtns > 0 && i < EmptyCtl; ++i)
+    lctl->curselrow += lines;
+    if (lctl->curselrow >= lctl->nitems)
     {
-      if (msgbox[i].style & TWS_VISIBLE)
+      lctl->curselrow = lctl->nitems - 1;
+    }
+    else if (lctl->curselrow < 0)
+    {
+      lctl->curselrow = 0;
+    }
+    
+    if (lctl->curselrow >= lctl->firstvisibleitem + rc.lines - 1)
+    {
+      lctl->firstvisibleitem += lines;
+      if (lctl->firstvisibleitem - 1 > lctl->nitems - rc.lines)
       {
-        /* move buttons */
-        msgbox[i].lines = 1;
-        msgbox[i].y     = 5;
-        msgbox[i].x     = x + 2;
-        /* next button moved */
-        x += msgbox[i].cols + 1;
-        --nbtns;
+        lctl->firstvisibleitem = lctl->nitems - rc.lines;
       }
     }
+    else if (lctl->firstvisibleitem > lctl->curselrow)
+    {
+      lctl->firstvisibleitem += lines;
+      if (lctl->firstvisibleitem < 0)
+      {
+        lctl->firstvisibleitem = 0;
+      }
+    }
+    TuiInvalidateWnd(wnd);
+    /* send notification */
+    _TLCTL_OnSelChanged(wnd);
   }
+}
+
+LONG TLCM_OnGetItemCount(TWND wnd)
+{
+  TLISTCTRL lctl = 0;
   
-  box = TuiCreateWndTempl(msgbox, 0);
-  return box;
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  return lctl->nitems;
 }
 
-LONG TuiMsgBoxParam(
-  TWND parent, LPCSTR caption, LPCSTR text, UINT flags,
-  MSGBOXPARAM* param)
+LONG TLCTL_OnSetItem(TWND wnd, UINT flags, SUBITEM* subitem)
 {
+  TLISTCTRL lctl = 0;
+  tlistcell_t* cell = 0;
   LONG rc = TUI_ERROR;
-  MSGBOXPARAM *msgbx = 0;
-  TWND box = _TuiMsgBox(parent, caption, text, flags);
-  if (box)
+
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  cell = _TLCTL_FindCellByIndex(lctl, subitem->col, subitem->idx);
+  if (cell)
   {
+    if (flags & LCFM_TEXT)  { strcpy(cell->caption, subitem->text);  }
+    if (flags & LCFM_DATA)  { cell->data  = subitem->data;  }
+    if (flags & LCFM_ATTRS) { cell->attrs = subitem->attrs; }
     rc = TUI_OK;
-
-    msgbx = (MSGBOXPARAM*)TuiGetWndParam(box);
-    memcpy(msgbx, param, sizeof(MSGBOXPARAM));
-
-    TuiSetWndParam(box, msgbx);
-    TuiShowWnd(box, TW_SHOW);
   }
-  return rc; 
+  return rc;
 }
 
-LONG TuiMsgBox(TWND parent, LPCSTR caption, LPCSTR text, UINT flags)
+LONG TLCTL_OnGetItem(TWND wnd, UINT flags, SUBITEM* subitem)
 {
+  TLISTCTRL lctl = 0;
+  tlistcell_t* cell = 0;
   LONG rc = TUI_ERROR;
-  TWND box = _TuiMsgBox(parent, caption, text, flags);
-  if (box)
+
+  lctl = (TLISTCTRL)TuiGetWndParam(wnd);
+  cell = _TLCTL_FindCellByIndex(lctl, subitem->col, subitem->idx);
+  if (cell)
   {
+    if (flags & LCFM_TEXT)  { subitem->text  = cell->caption;  }
+    if (flags & LCFM_DATA)  { subitem->data  = cell->data;  }
+    if (flags & LCFM_ATTRS) { subitem->attrs = cell->attrs; }
     rc = TUI_OK;
-    TuiShowWnd(box, TW_SHOW);
   }
-  return rc; 
+  return rc;
+}
+
+LONG LISTCTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+  switch (msg)
+  {
+    case TWM_CREATE:
+    {
+      /* initial memory for static control */
+      return TLCTL_OnCreate(wnd);
+    }
+    case TWM_DESTROY:
+    {
+      /* release memory of static control */
+      TLCTL_OnDestroy(wnd);
+      return 0;
+    }
+
+    case TWM_SETFOCUS:
+    {
+      TLCTL_OnSetFocus(wnd);
+      break;
+    }
+    case TWM_KILLFOCUS:
+    {
+      return TLCTL_OnKillFocus(wnd);
+    }
+
+    case TWM_KEYDOWN:
+    {
+      TLCTL_OnKeyDown(wnd, (LONG)wparam);
+      break;
+    }
+
+    case TWM_PAINT:
+    {
+      TLCTL_OnPaint(wnd, TuiGetDC(wnd));
+      return 0;
+    }
+    
+    case TLCM_ADDCOLUMN:
+    {
+      return TLCTL_OnAddColumn(wnd, (HEADERITEM*)lparam);
+    }
+    case TLCM_DELETECOLUMN:
+    {
+      TLCTL_OnDeleteColumn(wnd, (INT)wparam);
+      return 0;
+    }
+    case TLCM_DELETEALLCOLUMNS:
+    {
+      TLCTL_OnDeleteAllItems(wnd);
+      return 0;
+    }
+    case TLCM_ADDITEM:
+    {
+      return TLCTL_OnAddItem(wnd, (LPSTR)lparam, (INT)wparam);
+    }
+    case TLCM_DELETEITEM:
+    {
+      TLC_OnDeleteItem(wnd, (INT)wparam);
+      return 0;
+    }
+    case TLCM_DELETEALLITEMS:
+    {
+      TLCTL_OnDeleteAllItems(wnd);
+      return 0;
+    }
+    case TLCM_SETITEM:
+    {
+      return TLCTL_OnSetItem(wnd, (UINT)wparam, (SUBITEM*)lparam);
+    }
+    case TLCM_GETITEM:
+    {
+      return TLCTL_OnGetItem(wnd, (UINT)wparam, (SUBITEM*)lparam);
+    }
+    case TLCM_GETITEMCOUNT:
+    {
+      return TLCM_OnGetItemCount(wnd);
+    }
+  }
+  return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
 
