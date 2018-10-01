@@ -52,20 +52,8 @@ VOID TBTN_OnPaint(TWND wnd, TDC dc)
       rc.cols,
       ALIGN_CENTER);
 
-    if (btn->state & TBS_FOCUSED)
-    {
-      buf[0] = '[';
-      buf[1] = '[';
-      buf[len-2] = ']';
-      buf[len-1] = ']';
-    }
-    else
-    {
-      buf[0] = '[';
-      buf[1] = ' ';
-      buf[len-2] = ' ';
-      buf[len-1] = ']';
-    }
+    buf[0] = '[';
+    buf[len-1] = ']';
     
     if (!TuiIsWndEnabled(wnd))
     {
@@ -101,7 +89,7 @@ LONG TBTN_OnCreate(TWND wnd)
   
   TuiSetWndParam(wnd, (LPVOID)btn);
 #ifdef __USE_CURSES__
-  TuiSetWndTextAttrs(wnd, COLOR_PAIR(CYAN_BLACK));
+  TuiSetWndTextAttrs(wnd, COLOR_PAIR(BLACK_CYAN));
 #elif defined __USE_QIO__
   TuiSetWndTextAttrs(wnd, CYAN_BLACK);
 #endif
@@ -214,4 +202,5 @@ LONG BUTTONPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
+
 
