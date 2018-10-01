@@ -71,6 +71,9 @@ theader_t*   _TLCTL_FindHeaderByIndex(TLISTCTRL lctl, INT col);
 tlistcell_t* _TLCTL_FindCellByIndex(TLISTCTRL lctl, INT col, INT idx);
 tlistcell_t* _TLCTL_FindCellByHeader(TLISTCTRL lctl, theader_t* header, INT idx);
 LONG         _TLCTL_GetCellRect(TLISTCTRL lctl, INT col, INT idx, RECT* rect);
+VOID _TLCTL_DrawItem(
+  TDC dc, RECT* rccell, LPCSTR caption, DWORD attrs, INT align, INT isheader);
+VOID _TLCTL_OnSelChanged(TWND wnd);
 
 
 LONG LISTCTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
@@ -84,6 +87,8 @@ VOID TLCTL_OnDestroy(TWND wnd);
 LONG TLCTL_OnCreate(TWND wnd);
 LONG TLCTL_OnGetItem(TWND wnd, UINT flags, SUBITEM* subitem);
 LONG TLCTL_OnSetItem(TWND wnd, UINT flags, SUBITEM* subitem);
+VOID TLCTL_OnSetFocus(TWND wnd);
+LONG TLCTL_OnKillFocus(TWND wnd);
 
 
 theader_t* _TLCTL_FindHeaderByIndex(TLISTCTRL lctl, INT col)
@@ -191,6 +196,39 @@ LONG TLCTL_OnCreate(TWND wnd)
   
   /* save memory */
   TuiSetWndParam(wnd, (LPVOID)lctl);
+  return TUI_CONTINUE;
+}
+
+VOID _TLCTL_OnSelChanged(TWND wnd)
+{
+  NMHDR nmhdr;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_SELCHANGED;
+
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+}
+
+VOID TLCTL_OnSetFocus(TWND wnd)
+{
+  NMHDR nmhdr;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_SETFOCUS;
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+}
+
+LONG TLCTL_OnKillFocus(TWND wnd)
+{
+  NMHDR nmhdr;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_KILLFOCUS;
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+
   return TUI_CONTINUE;
 }
 
@@ -357,7 +395,6 @@ VOID TLC_OnDeleteItem(TWND wnd, INT idx)
     }
     
     cell->next = cell->prev = 0;
-    /*free(cell->caption);*/
     free(cell);
     /* next header */
     header = header->next;
@@ -390,7 +427,6 @@ LONG TLCTL_OnAddItem(TWND wnd, LPSTR text, INT nitems)
         break;
       }
       memset(newcell, 0, sizeof(tlistcell_t));
-      /*newcell->caption = (CHAR*)malloc(TUI_MAX_WNDTEXT+1);*/
       strncpy(newcell->caption, tok, MIN(TUI_MAX_WNDTEXT, strlen(tok)));
       
       /* add the new item */
@@ -418,95 +454,127 @@ LONG TLCTL_OnAddItem(TWND wnd, LPSTR text, INT nitems)
   return lctl->nitems;
 }
 
+VOID _TLCTL_DrawItem(
+  TDC dc, RECT* rccell, LPCSTR caption, DWORD attrs, INT align, INT isheader)
+{
+  LONG len = 0;
+  CHAR buf[TUI_MAX_WNDTEXT+1];
+  len = TuiPrintTextAlignment(buf, 
+          caption,
+          rccell->cols,
+          align);
+  /* is is a header */
+  if (isheader)
+  {
+    buf[0] = '[';
+    buf[len - 1] = ']';
+  }
+
+  TuiDrawText(dc,
+    rccell->y,
+    rccell->x,
+    buf,
+    attrs); 
+}
+
 VOID TLCTL_OnPaint(TWND wnd, TDC dc)
 {
   TLISTCTRL lctl = 0;
   theader_t* header = 0;
   INT width = 0;
-  RECT rcitem, rc, rccell;
-  CHAR buf[TUI_MAX_WNDTEXT+1];
+  RECT rcitem, rcwnd, rccell;
   DWORD attrs = 0;
-  LONG len = 0;
+  DWORD hdrattrs = 0;
   tlistcell_t* visiblecell = 0;
   INT i = 0;
+  INT forcewidth = 0;
 
   lctl = (TLISTCTRL)TuiGetWndParam(wnd);
   
+  /* if no headers or control is hiding */
   if (lctl->nheaders <= 0 || !TuiIsWndVisible(wnd))
   {
     return;
   }
 
   /* draw headers */
-  TuiGetWndRect(wnd, &rc);
-  rcitem = rc; /* copy some values */
+  TuiGetWndRect(wnd, &rcwnd);
+  rcitem = rcwnd; /* copy some values */
+  rcitem.lines = 1;
   
   header = lctl->firstvisiblehdr;  
   width  = header->cols;
   
-  if (width > rc.cols)
+  /* first column width must not be over window columns */
+  if (width > rcwnd.cols)
   {
-    width = rc.cols;
+    width = rcwnd.cols - 1;
+    forcewidth = 1;
   }
   
-  while (header && width < rc.cols)
+  while (header && width < rcwnd.cols)
   {    
+    rcitem.x    = rcwnd.x + width - header->cols;
     rcitem.cols = header->cols;
-    rcitem.x    = rc.x + width - rcitem.cols;
+    if (rcitem.x < 0)
+    {
+      rcitem.x = rcwnd.x;
+      if (forcewidth == 1)
+      {
+        rcitem.cols = width;
+      }
+      else
+      {
+        --rcitem.cols;
+      }
+    }
 
     attrs = header->attrs;
+    hdrattrs = attrs;
 #ifdef __USE_CURSES__
     attrs |= A_REVERSE;
 #elif defined __USE_QIO__
     attrs = 0;
 #endif
-    len = TuiPrintTextAlignment(buf, 
-            header->caption,
-            rcitem.cols,
-            ALIGN_CENTER);
-    
-    buf[0] = '[';
-    buf[len-1] = ']';
-    
-    TuiDrawText(dc,
-      rcitem.y,
-      rcitem.x,
-      buf,
-      attrs);
+    _TLCTL_DrawItem(dc, &rcitem, 
+      header->caption, attrs, ALIGN_CENTER, 1);
 
     /* draw cells */
     rccell = rcitem;
     rccell.y += 1;
+    rccell.lines = 1;
     visiblecell = header->firstcell;
-    for (i = 0; i < lctl->nitems && visiblecell; ++i, visiblecell = visiblecell->next)
+    for (i = 0; i < lctl->nitems && visiblecell;
+        ++i, visiblecell = visiblecell->next)
     {
       if (i < lctl->firstvisibleitem)
       {
         /* do nothing */
         continue;
       }
-      else if (i - lctl->firstvisibleitem <= rc.lines - 2)
+      else if (i - lctl->firstvisibleitem <= rcwnd.lines - 2)
       {
-        len = TuiPrintTextAlignment(buf,
-                visiblecell->caption,
-                header->cols,
-                header->align);
 
         attrs = visiblecell->attrs;
 #ifdef __USE_CURSES__
         if (i == lctl->curselrow)
         {
-          attrs |= A_REVERSE;
-        }
+          attrs = A_REVERSE|COLOR_PAIR(CYAN_BLACK);
 #elif defined __USE_QIO__
         
 #endif
-        TuiDrawText(dc,
-          rccell.y,
-          rccell.x,
-          buf,
-          attrs);
+        }
+        /* draw th item that it can be seen */
+        _TLCTL_DrawItem(dc, &rccell, 
+          visiblecell->caption, attrs, header->align, 0);
+
+        /* next cell line */
         ++rccell.y;
+      }
+      else
+      {
+        /* no need to draw more items than client lines */
+        break;
       }
     } /* for each drawing cell */
     
@@ -516,7 +584,7 @@ VOID TLCTL_OnPaint(TWND wnd, TDC dc)
     if (header)
     {
       width += header->cols;
-      if (width > rc.cols)
+      if (width > rcwnd.cols)
       {
         break;
       }
@@ -525,19 +593,20 @@ VOID TLCTL_OnPaint(TWND wnd, TDC dc)
   
   /* print arrow controls */
 #ifdef __USE_CURSES__
-  attrs |= A_REVERSE;
+  attrs = hdrattrs | A_REVERSE;
 #elif defined __USE_QIO__
   attrs = 0;
 #endif
   if (lctl->firsthdr != lctl->firstvisiblehdr)
   {
-    TuiPutChar(dc, rc.y, rc.x, '<', attrs);
+    TuiPutChar(dc, rcwnd.y, rcwnd.x + 1, '<', attrs);
   }
   /* save the last visible */
   if (header)
   {
     lctl->lastvisiblehdr = header->prev;
-    TuiPutChar(dc, rc.y, rc.x + width - header->cols - 1, '>', attrs);
+    TuiPutChar(dc, rcwnd.y, 
+      rcwnd.x + width - header->cols - 2, '>', attrs);
   }
   else
   {
@@ -657,12 +726,7 @@ VOID TLCTL_OnKeyDown(TWND wnd, LONG ch)
     }
     TuiInvalidateWnd(wnd);
     /* send notification */
-    /*
-    nmhdr.id   = TuiGetWndID(wnd);
-    nmhdr.ctl  = wnd;
-    nmhdr.code = TLBN_SELCHANGED;
-    TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
-    */
+    _TLCTL_OnSelChanged(wnd);
   }
 }
 
@@ -725,7 +789,7 @@ LONG LISTCTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       TLCTL_OnDestroy(wnd);
       return 0;
     }
-/*
+
     case TWM_SETFOCUS:
     {
       TLCTL_OnSetFocus(wnd);
@@ -735,7 +799,7 @@ LONG LISTCTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
       return TLCTL_OnKillFocus(wnd);
     }
-*/
+
     case TWM_KEYDOWN:
     {
       TLCTL_OnKeyDown(wnd, (LONG)wparam);
@@ -791,3 +855,4 @@ LONG LISTCTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
+
