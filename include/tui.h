@@ -232,6 +232,7 @@ typedef struct _DRAWITEMSTRUCT DRAWITEM;
 #define TWM_COMMAND             (TWM_FIRST +   15)
 #define TWM_SETTEXTATTRS        (TWM_FIRST +   16)
 #define TWM_DRAWITEM            (TWM_FIRST +   17)
+#define TWM_DLGMSGID            (TWM_FIRST +   18)
 
 /* application user messages */
 #define TWM_USER          10000
@@ -243,6 +244,10 @@ typedef struct _DRAWITEMSTRUCT DRAWITEM;
 #define TBN_FIRST               (TWM_USER +  250)
 #define TLCN_FIRST              (TWM_USER +  300)
 
+/*-------------------------------------------------------------------
+ * msgbox
+ *-----------------------------------------------------------------*/
+#define MSGBOX                  "MSGBOX"
 /*-------------------------------------------------------------------
  * static control
  *-----------------------------------------------------------------*/
@@ -384,6 +389,9 @@ typedef struct _DRAWITEMSTRUCT DRAWITEM;
 /*
 #define TLCN_FIRST              (TWM_USER +  300)
 */
+#define TLCN_SETFOCUS           (TLCN_FIRST  +    0)
+#define TLCN_KILLFOCUS          (TLCN_FIRST  +    1)
+#define TLCN_SELCHANGED         (TLCN_FIRST  +    2)
 
 #define  LCFM_TEXT              0x0001
 #define  LCFM_ATTRS             0x0002
@@ -528,8 +536,21 @@ VOID TuiSetWndValidate(TWND, LONG (*)(TWND, LPCSTR));
 
 #define MB_OK                0x00000008
 #define MB_OKCANCEL          (MB_OK|MB_CANCEL)
+
+struct _MSGBOXSTRUCT
+{
+  TWND  owner;
+  VOID* param;
+  VOID  (*OnOK)(TWND, VOID*);
+  VOID  (*OnYes)(TWND, VOID*);
+  VOID  (*OnNo)(TWND, VOID*);
+  VOID  (*OnCancel)(TWND, VOID*);
+};
+typedef struct _MSGBOXSTRUCT MSGBOXPARAM;
+
 UINT TuiEndDlg(TWND, UINT);
-UINT TuiMsgBox(TWND, LPCSTR, LPCSTR, UINT);
+LONG TuiMsgBox(TWND, LPCSTR, LPCSTR, UINT);
+LONG TuiMsgBoxParam(TWND, LPCSTR, LPCSTR, UINT, MSGBOXPARAM*);
 /* device context */
 #define DT_LEFT              0x0001
 #define DT_CENTER            0x0002
@@ -551,7 +572,7 @@ LONG TuiDrawTextEx(TDC, INT, INT, INT, LPCSTR, LONG, DWORD, INT);
 LONG TuiPutChar(TDC, INT, INT, CHAR, DWORD);
 LONG TuiMoveYX(TDC, INT, INT);
 LONG TuiGetYX(TDC, INT*, INT*);
-LONG TuiPrintTextAlignment(LPSTR out, LPSTR in, LONG limit, INT align);
+LONG TuiPrintTextAlignment(LPSTR out, LPCSTR in, LONG limit, INT align);
 
 /* simple macros */
 #define MIN(a, b)    ((a) < (b) ? (a) : (b))
