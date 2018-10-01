@@ -78,20 +78,6 @@ WNDTEMPL dlg3[] =
   { 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-WNDTEMPL msgbox[] =
-{
-  /* 1st object is always dialog */
-  { "msgbox", "msgbox", 3,  10,  10, 7, 40, TWS_WINDOW, 0 },
-  /* 2nd and others are controls */
-  { STATIC, "This is a message box",        IDC_MSG,      1,  1,  1,  38, 
-      TWS_CHILD|TWS_VISIBLE|TSS_CENTER, 0 },
-  { BUTTON, "OK",        IDC_OK,      3,  5,  1,  10, TWS_CHILD|TWS_VISIBLE, 0 },
-  { BUTTON, "Cancel",    IDC_CANCEL,  3,  20,  1,  10, TWS_CHILD|TWS_VISIBLE, 0 },
-  /* the last is the end-of-controls */
-  { 0, 0, 0, 0, 0, 0, 0, 0 }
-};
-
-
 VOID mywndproc_onselchanged(TWND wnd, TWND ctl)
 {
   TWND statusbar = 0;
@@ -199,10 +185,64 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
 
+VOID on_dlgmsgid(TWND wnd, UINT wparam)
+{
+        switch (wparam)
+        {
+          case MB_YES: TuiMsgBox(wnd, "Hello TUI", "Clicked YES", MB_OK); break;
+          case MB_NO: TuiMsgBox(wnd, "Hello TUI", "Clicked NO", MB_OK); break;
+          case MB_CANCEL: TuiMsgBox(wnd, "Hello TUI", "Clicked CANCEL", MB_OK); break;
+        }
+}
+
+/*
+struct _MSGBOXSTRUCT
+{
+  TWND  owner;
+  VOID* param;
+  VOID  (*OnOK)(TWND, VOID*);
+  VOID  (*OnYes)(TWND, VOID*);
+  VOID  (*OnNo)(TWND, VOID*);
+  VOID  (*OnCancel)(TWND, VOID*);
+};
+typedef struct _MSGBOXSTRUCT tmsgbox_t;
+typedef struct _MSGBOXSTRUCT MSGBOXPARAM;
+*/
+
+VOID onok(TWND wnd, VOID* param)
+{
+  TuiMsgBox(wnd,
+    "Hello world",
+    "Pressed OK",
+    MB_OK);
+}
+VOID onyes(TWND wnd, VOID* param)
+{
+  TuiMsgBox(wnd,
+    "Hello world",
+    "Pressed Yes",
+    MB_OK);
+}
+VOID onno(TWND wnd, VOID* param)
+{
+  TuiMsgBox(wnd,
+    "Hello world",
+    "Pressed No",
+    MB_OK);
+}
+VOID oncancel(TWND wnd, VOID* param)
+{
+  TuiMsgBox(wnd,
+    "Hello world",
+    "Pressed Cancel",
+    MB_OK);
+}
+
 
 LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   TWND list = 0;
+  MSGBOXPARAM param;
 
   switch (msg)
   {
@@ -225,10 +265,11 @@ LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       TLC_AddColumn(list, "LOW",   16, ALIGN_RIGHT,  BLUE_YELLOW);
       TLC_AddColumn(list, "CLOSE", 16, ALIGN_RIGHT,  BLUE_YELLOW);
 #endif  
+      TLC_AddItem(list, "SCC\t01-01-2018\t560.00\t563.50\t560.00\t562.00\t", 6);
+      TLC_AddItem(list, "PTTEP\t01-01-2018\t160.00\t163.50\t160.00\t162.00\t", 6);
+      TLC_AddItem(list, "PTTGC\t01-01-2018\t70.00\t73.50\t70.00\t72.00\t", 6);
       TLC_AddItem(list, "PTT\t01-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
-      TLC_AddItem(list, "PTT\t02-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
-      TLC_AddItem(list, "PTT\t03-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
-      TLC_AddItem(list, "PTT\t04-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
+
       TLC_AddItem(list, "PTT\t05-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
       TLC_AddItem(list, "PTT\t06-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
       TLC_AddItem(list, "PTT\t07-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
@@ -255,6 +296,7 @@ LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       TLC_AddItem(list, "PTT\t28-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
       TLC_AddItem(list, "PTT\t29-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
       TLC_AddItem(list, "PTT\t30-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
+
       return TUI_CONTINUE;
     }
 
@@ -266,48 +308,30 @@ LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       }
       else if (wparam == IDC_MSG)
       {
-        UINT rc = TuiMsgBox(wnd,
-                    "Hello world",
-                    "Welcome to the real world.",
-                    MB_YESNOCANCEL);
-        switch (rc)
-        {
-          case MB_YES: TuiMsgBox(wnd, "Hello TUI", "Clicked YES", MB_OK); break;
-          case MB_NO: TuiMsgBox(wnd, "Hello TUI", "Clicked NO", MB_OK); break;
-          case MB_CANCEL: TuiMsgBox(wnd, "Hello TUI", "Clicked CANCEL", MB_OK); break;
-        }
+        param.owner = wnd;
+        param.param = 0;
+        param.OnOK  = onok;
+        param.OnYes = onyes;
+        param.OnNo  = onno;
+        param.OnCancel = oncancel;
       
+        TuiMsgBoxParam(wnd,
+          "Hello World",
+          "Welcome to the real world.",
+          MB_OK|MB_YESNOCANCEL,
+          &param);
+
       }
+      break;
+    }
+    case TWM_DLGMSGID:
+    {
+      on_dlgmsgid(wnd, wparam);
       break;
     }
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
-
-LONG msgboxproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
-{
-  switch (msg)
-  {
-    case TWM_INITDIALOG:
-    {
-#ifdef __USE_CURSES__
-      TuiSendMsg(wnd, TWM_SETTEXTATTRS, (WPARAM)(A_REVERSE), (LPARAM)0);
-#endif
-      return TUI_CONTINUE;
-    }
-
-    case TWM_COMMAND:
-    {
-      if (wparam == IDC_CANCEL)
-      {
-        TuiDestroyWnd(wnd);
-      }
-      break;
-    }
-  }
-  return TuiDefWndProc(wnd, msg, wparam, lparam);
-}
-
 
 int main(int argc, char* argv[])
 {
@@ -320,7 +344,6 @@ int main(int argc, char* argv[])
 
   TuiRegisterCls("mywndproc", mywndproc);
   TuiRegisterCls("mylistctlproc", mylistctlproc);
-  TuiRegisterCls("msgbox", msgboxproc);
 
   wnd = TuiCreateWndTempl(dlg1, 0);
   if (!wnd)
