@@ -122,7 +122,7 @@ VOID _TuiDestroyWnd(TWND wnd);
 LONG _TuiInvalidateWnd(TWND wnd);
 LONG _TuiDequeMsg();
 LONG _TuiRemoveAllMsgs();
-LONG _TuiAlignmentPrint(LPSTR out, LPSTR in, LONG limit, INT align);
+LONG _TuiAlignmentPrint(LPSTR out, LPCSTR in, LONG limit, INT align);
 
 LONG STATICPROC(TWND, UINT, WPARAM, LPARAM);
 LONG EDITPROC(TWND, UINT, WPARAM, LPARAM);
@@ -130,7 +130,6 @@ LONG LISTBOXPROC(TWND, UINT, WPARAM, LPARAM);
 LONG BUTTONPROC(TWND, UINT, WPARAM, LPARAM);
 LONG LISTCTRLPROC(TWND, UINT, WPARAM, LPARAM);
 
-#define MSGBOX          "MSGBOX"
 LONG MSGBOXPROC(TWND, UINT, WPARAM, LPARAM);
 
 /*-------------------------------------------------------------------
@@ -640,22 +639,6 @@ LONG TuiSendMsg(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   if (wnd)
   {
-/*
-    TENV env = genvptr;
-    tmsgq_t* msgq = 0;
-
-    while (env->headq)
-    {
-      msgq = env->headq;
-      msgq->wnd->wndproc(msgq->wnd,
-        msgq->msg,
-        msgq->wparam,
-        msgq->lparam);
-      env->headq = env->headq->next;
-      free(msgq);
-    }
-    env->headq = env->tailq = 0;
- */   
     return wnd->wndproc(wnd, msg, wparam, lparam);
   }
   return TUI_ERROR;
@@ -995,33 +978,29 @@ LONG TuiGetMsg(MSG* msg)
       msgq->wparam,
       msgq->lparam);
 
-    env->headq = env->headq->next;
+    if (env->headq)
+    {
+      env->headq = env->headq->next;
+    }
+    msgq->next = 0;
     free(msgq);
   }
-  env->tailq = env->headq; /* set to nil */
+  env->tailq = env->headq = 0; /* set to nil */
 
   memset(msg, 0, sizeof(MSG));
   msg->wnd = env->activewnd;
 #ifdef __USE_CURSES__
   msg->wparam = wgetch(stdscr);
 #elif defined __USE_QIO__
-  /*printf("%s", sQioClear);*/
-  /*QIO_Text(5, 1, 'W', sPrompt);*/
 
-  qio_field.lType = QIO_ANY /*| QIO_UPPERCASE*/ | QIO_NO_ECHO;
+  qio_field.lType = QIO_ANY | QIO_NO_ECHO;
   qio_field.cColor = 'W';
-  /*sprintf(qio_field.szHelp, "%s", "Enter password");*/
-  /*strcpy(qio_field.szHelp, "");*/
   qio_field.lLength = 1;
   qio_field.lRow = 1;
-  qio_field.lColumn = 1;/*strlen(sPrompt)+1;*/
+  qio_field.lColumn = 1;
   qio_field.bReprint = 0;
 
   QIO_Get();
-  /*printf("\n");*/
-/*
-  memcpy(sInput, qio_field.szResult, MAX_PUBKEY_LEN+MAX_LEN_PWD);
-  */
   
   msg->wparam = qio_field.lTerm;
 #endif
@@ -1029,7 +1008,7 @@ LONG TuiGetMsg(MSG* msg)
   return msg->wparam;
 }
 
-LONG _TuiAlignmentPrint(LPSTR out, LPSTR in, LONG limit, INT align)
+LONG _TuiAlignmentPrint(LPSTR out, LPCSTR in, LONG limit, INT align)
 {
   LONG len = 0;
   CHAR text[TUI_MAX_WNDTEXT+1];
@@ -1283,21 +1262,7 @@ LONG TuiTranslateMsg(MSG* msg)
     rc = TuiSendMsg(msg->wnd, TWM_KEYUP, msg->wparam, 0);
   }
 
-  /* deque */
-/*
-  while (env->headq)
-  {
-    msgq = env->headq;
-    TuiSendMsg(msgq->wnd,
-      msgq->msg,
-      msgq->wparam,
-      msgq->lparam);
-
-    env->headq = env->headq->next;
-    free(msgq);
-  }
-  env->tailq = env->headq;
-*/
+  /* try to dispatch */
   TuiDispatchMsg(msg);
 
   return 0;
@@ -1364,7 +1329,7 @@ TWND TuiGetPrevWnd(TWND wnd)
   return wnd->prevwnd;
 }
 
-LONG TuiPrintTextAlignment(LPSTR out, LPSTR in, LONG limit, INT align)
+LONG TuiPrintTextAlignment(LPSTR out, LPCSTR in, LONG limit, INT align)
 {
   return _TuiAlignmentPrint(out, in, limit, align);
 }
@@ -1489,151 +1454,11 @@ LONG TuiDefWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   return TUI_OK;
 }
 
-UINT TuiMsgBox(TWND parent, LPCSTR caption, LPCSTR text, UINT flags)
-{
-  MSG msg;
-  UINT rc = MB_INVALID;
-  TWND box = 0;
-  RECT rect;
-  LONG caplen = 0, textlen = 0, wndwidth = 0;
-  LONG nbtns = 0;
-  LONG btnwidth = 0;
-  INT  i;
-  
-  enum
-  {
-    Msgbox  = 0,
-    CaptionStatic,
-    YesButton,
-    NoButton,
-    OKButton,
-    CancelButton,
-    EmptyCtl
-  };
-  WNDTEMPL msgbox[] =
-  {
-    { MSGBOX, text, 0,  0,  1,  7,  1, TWS_WINDOW, 0 },
-    /* text */
-    { STATIC, caption,  MB_CAPTION, 0,  0,  1,   1, TWS_CHILD|TWS_VISIBLE|TSS_CENTER, 0 },
-    /* buttons */
-    { BUTTON, "Yes",    MB_YES,     0,  0,  1,  11, TWS_CHILD, 0 },
-    { BUTTON, "No",     MB_NO,      0,  0,  1,  10, TWS_CHILD, 0 },
-    { BUTTON, "OK",     MB_OK,      0,  0,  1,  10, TWS_CHILD, 0 },
-    { BUTTON, "Cancel", MB_CANCEL,  0,  0,  1,  10, TWS_CHILD, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0 }
-  };
-
-  /* calculate window width */
-  if (flags & MB_YES)
-  {
-    msgbox[YesButton].style |= TWS_VISIBLE;
-    ++nbtns;
-    btnwidth += msgbox[YesButton].cols + 1;
-  }
-  else
-  {
-    msgbox[YesButton].style &= ~TWS_VISIBLE;
-  }
-  if (flags & MB_NO)
-  {
-    msgbox[NoButton].style |= TWS_VISIBLE;
-    ++nbtns;
-    btnwidth += msgbox[NoButton].cols + 1;
-  }
-  else
-  {
-    msgbox[NoButton].style &= ~TWS_VISIBLE;
-  }
-  if (flags & MB_OK)
-  {
-    msgbox[OKButton].style |= TWS_VISIBLE;
-    ++nbtns;
-    btnwidth += msgbox[OKButton].cols + 1;
-  }
-  else
-  {
-    msgbox[OKButton].style &= ~TWS_VISIBLE;
-  }
-  if (flags & MB_CANCEL)
-  {
-    msgbox[CancelButton].style |= TWS_VISIBLE;
-    btnwidth += msgbox[CancelButton].cols + 1;
-    ++nbtns;
-  }
-  else
-  {
-    msgbox[CancelButton].style &= ~TWS_VISIBLE;
-  }
-  
-  TuiGetWndRect(parent, &rect);
-  caplen   = strlen(caption);
-  textlen  = strlen(text);
-  wndwidth = MAX(btnwidth, MAX(caplen, textlen));
-  if (wndwidth % 2 == 1)
-  {
-    ++wndwidth;
-  }
-  
-  /* move window to center */
-  msgbox[Msgbox].lines = 7;
-  msgbox[Msgbox].y     = rect.y + (rect.lines - msgbox[Msgbox].lines)/2;
-  msgbox[Msgbox].cols  = wndwidth + 10;
-  msgbox[Msgbox].x     = rect.x + (rect.cols  - msgbox[Msgbox].cols)/2;
-  
-  /* move caption to center */
-  msgbox[CaptionStatic].lines = 1;
-  msgbox[CaptionStatic].y     = 1;
-  msgbox[CaptionStatic].x     = 1;
-  msgbox[CaptionStatic].cols  = msgbox[Msgbox].cols - 2;
-  
-  /* move buttons to center */
-  if (nbtns > 3)
-  {
-  }
-  else if (nbtns > 0)
-  {
-    INT x = (msgbox[Msgbox].cols - btnwidth)/(nbtns == 1 ? 2 : nbtns);
-    for (i = YesButton; nbtns > 0 && i < EmptyCtl; ++i)
-    {
-      if (msgbox[i].style & TWS_VISIBLE)
-      {
-        /* move buttons */
-        msgbox[i].lines = 1;
-        msgbox[i].y     = 5;
-        msgbox[i].x     = x;
-        /* next button moved */
-        x += msgbox[i].cols + 1;
-        --nbtns;
-      }
-    }
-  }
-  
-  box = TuiCreateWndTempl(msgbox, 0);
-  if (!box)
-  {
-    return -1;
-  }
-  TuiShowWnd(box, TW_SHOW);
-
-  /* remove all messages */
-  _TuiRemoveAllMsgs();
-  
-  rc = TuiGetDlgMsgID();
-  while (rc == MB_INVALID)
-  {
-    TuiGetMsg(&msg);
-    TuiDispatchMsg(&msg);
-    TuiTranslateMsg(&msg);
-    
-    rc = TuiGetDlgMsgID();
-  }
-
-  return rc;
-}
-
 UINT TuiEndDlg(TWND wnd, UINT id)
 {
   wnd->dlgmsgid = id;
+  TuiPostMsg(TuiGetParent(wnd), TWM_DLGMSGID, (WPARAM)id, 0);
   TuiDestroyWnd(wnd);
   return id;
 }
+
