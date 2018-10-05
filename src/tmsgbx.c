@@ -12,7 +12,7 @@
 #include <qio_init.h>
 #endif
 
-#include "tui.h"
+#include "m_tui.h"
 /*-------------------------------------------------------------------
  * Message box functions
  *-----------------------------------------------------------------*/
@@ -118,9 +118,10 @@ LONG MSGBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       {
         TuiSetFocus(btn);
       }
-#ifdef __USE_CURSES__
-      TuiSendMsg(wnd, TWM_SETTEXTATTRS, (WPARAM)(A_REVERSE), (LPARAM)0);
-#endif
+      TuiSendMsg(wnd,
+        TWM_SETTEXTATTRS,
+        (WPARAM)(TuiGetReverseSysColor(COLOR_WNDTEXT)),
+        (LPARAM)0);
       return TMSGBX_OnInitDailog(wnd, lparam);
     }
     

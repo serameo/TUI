@@ -12,7 +12,7 @@
 #include <qio_init.h>
 #endif
 
-#include "tui.h"
+#include "m_tui.h"
 
 /*-------------------------------------------------------------------
  * STATIC functions
@@ -37,31 +37,10 @@ VOID TSTC_OnPaint(TWND wnd, TDC dc)
   }
 }
 
-LONG TSTC_OnCreate(TWND wnd)
-{
-#ifdef __USE_CURSES__
-  TuiSetWndTextAttrs(wnd, COLOR_PAIR(GREEN_BLACK));
-#elif defined __USE_QIO__
-  TuiSetWndTextAttrs(wnd, GREEN_BLACK);
-#endif
-  
-  return TUI_CONTINUE;
-}
-
 LONG STATICPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   switch (msg)
   {
-    case TWM_CREATE:
-    {
-      /* initial memory for static control */
-      return TSTC_OnCreate(wnd);
-    }
-    case TWM_DESTROY:
-    {
-      /* release memory of static control */
-      return 0;
-    }
     case TWM_PAINT:
     {
       TSTC_OnPaint(wnd, TuiGetDC(wnd));
@@ -70,3 +49,4 @@ LONG STATICPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
+

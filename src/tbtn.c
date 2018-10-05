@@ -12,7 +12,7 @@
 #include <qio_init.h>
 #endif
 
-#include "tui.h"
+#include "m_tui.h"
 
 /*-------------------------------------------------------------------
  * BUTTON functions
@@ -57,19 +57,11 @@ VOID TBTN_OnPaint(TWND wnd, TDC dc)
     
     if (!TuiIsWndEnabled(wnd))
     {
-#ifdef __USE_CURSES__
-      attrs = A_DIM|A_NORMAL;
-#elif defined __USE_QIO__
-      attrs = 0;
-#endif
+      attrs = TuiGetSysColor(COLOR_BTNDISABLED);
     }
     else if (btn->state == TBS_RELEASED)
     {
-#ifdef __USE_CURSES__
-      attrs = A_REVERSE;
-#elif defined __USE_QIO__
-      attrs = 0;
-#endif
+      attrs = TuiGetSysColor(COLOR_BTNFOCUSED);
     }
     TuiDrawText(dc, rc.y, rc.x, buf, attrs);
   }
@@ -88,11 +80,7 @@ LONG TBTN_OnCreate(TWND wnd)
   btn->state = TBS_RELEASED;
   
   TuiSetWndParam(wnd, (LPVOID)btn);
-#ifdef __USE_CURSES__
-  TuiSetWndTextAttrs(wnd, COLOR_PAIR(BLACK_CYAN));
-#elif defined __USE_QIO__
-  TuiSetWndTextAttrs(wnd, CYAN_BLACK);
-#endif
+  TuiSetWndTextAttrs(wnd, TuiGetSysColor(COLOR_BTNENABLED));
   
   return TUI_CONTINUE;
 }
@@ -198,6 +186,12 @@ LONG BUTTONPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
       TBTN_OnPaint(wnd, TuiGetDC(wnd));
       return 0;
+    }
+    case TBM_PRESS:
+    {
+      TBTN_OnSetFocus(wnd);
+      TBTN_OnKeyDown(wnd, TVK_SPACE);
+      break;
     }
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);

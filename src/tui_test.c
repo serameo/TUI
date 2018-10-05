@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curses.h>
-#include "tui.h"
+#include "m_tui.h"
 
 #define IDC_STATUSBAR    199
 #define IDC_NAME         200
@@ -23,6 +23,7 @@
 #define IDC_OPENDLG3     213
 #define IDC_MSG          214
 #define IDC_PRICE        215
+#define IDC_EDITCELL     216
 
 WNDTEMPL dlg1[] =
 {
@@ -71,9 +72,10 @@ WNDTEMPL dlg3[] =
   /* 1st object is always dialog */
   { "mylistctlproc", "Dialog3", 2,  0,  0, 25, 80, TWS_WINDOW, 0 },
   /* 2nd and others are controls */
-  { LISTCTRL, "",    IDC_OK,  1,  1,  16,  79, TWS_CHILD|TWS_VISIBLE, 0 },
+  { LISTCTRL, "",    IDC_LISTBOX1,  1,  1,  16,  79, TWS_CHILD|TWS_VISIBLE/*|TLCS_NOHEADER*/, 0 },
+  { BUTTON, "Edit",    IDC_EDITCELL,  20,  1,  1,  14, TWS_CHILD|TWS_VISIBLE, 0 },
   { BUTTON, "Message",    IDC_MSG,  20,  20,  1,  15, TWS_CHILD|TWS_VISIBLE, 0 },
-  { BUTTON, "Close",    IDC_CLOSE,  20,  40,  1,  11, TWS_CHILD|TWS_VISIBLE, 0 },
+  { BUTTON, "Close",    IDC_CLOSE,  20,  40,  1,  15, TWS_CHILD|TWS_VISIBLE, 0 },
   /* the last is the end-of-controls */
   { 0, 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -136,9 +138,10 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       TuiSendMsg(edit, TEM_LIMITTEXT, (WPARAM)20, (LPARAM)0);
       
       statusbar = TuiGetWndItem(wnd, IDC_STATUSBAR);
-#ifdef __USE_CURSES__
-      TuiSendMsg(statusbar, TWM_SETTEXTATTRS, (WPARAM)(A_REVERSE), (LPARAM)0);
-#endif      
+      TuiSendMsg(statusbar,
+        TWM_SETTEXTATTRS, 
+        (WPARAM)TuiGetColor(BLUE_YELLOW),
+        (LPARAM)0);
       edit = TuiGetWndItem(wnd, IDC_PRICE);
       TuiSendMsg(edit, TEM_SETDECWIDTH, (WPARAM)2, (LPARAM)0);
      /* 
@@ -185,86 +188,26 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
 
-VOID on_dlgmsgid(TWND wnd, UINT wparam)
-{
-        switch (wparam)
-        {
-          case MB_YES: TuiMsgBox(wnd, "Hello TUI", "Clicked YES", MB_OK); break;
-          case MB_NO: TuiMsgBox(wnd, "Hello TUI", "Clicked NO", MB_OK); break;
-          case MB_CANCEL: TuiMsgBox(wnd, "Hello TUI", "Clicked CANCEL", MB_OK); break;
-        }
-}
-
-/*
-struct _MSGBOXSTRUCT
-{
-  TWND  owner;
-  VOID* param;
-  VOID  (*OnOK)(TWND, VOID*);
-  VOID  (*OnYes)(TWND, VOID*);
-  VOID  (*OnNo)(TWND, VOID*);
-  VOID  (*OnCancel)(TWND, VOID*);
-};
-typedef struct _MSGBOXSTRUCT tmsgbox_t;
-typedef struct _MSGBOXSTRUCT MSGBOXPARAM;
-*/
-
-VOID onok(TWND wnd, VOID* param)
-{
-  TuiMsgBox(wnd,
-    "Hello world",
-    "Pressed OK",
-    MB_OK);
-}
-VOID onyes(TWND wnd, VOID* param)
-{
-  TuiMsgBox(wnd,
-    "Hello world",
-    "Pressed Yes",
-    MB_OK);
-}
-VOID onno(TWND wnd, VOID* param)
-{
-  TuiMsgBox(wnd,
-    "Hello world",
-    "Pressed No",
-    MB_OK);
-}
-VOID oncancel(TWND wnd, VOID* param)
-{
-  TuiMsgBox(wnd,
-    "Hello world",
-    "Pressed Cancel",
-    MB_OK);
-}
-
 
 LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   TWND list = 0;
-  MSGBOXPARAM param;
+  /*MSGBOXPARAM param;*/
+  SUBITEM item;
 
   switch (msg)
   {
     case TWM_INITDIALOG:
     {
-      list = TuiGetWndItem(wnd, IDC_OK);
-#ifdef __USE_CURSES__
+      list = TuiGetWndItem(wnd, IDC_LISTBOX1);
+      
+      TLC_AddColumnEx(list, "STOCK", 20, ALIGN_LEFT,   TuiGetColor(BLUE_YELLOW), TES_UPPERCASE|TES_AUTOHSCROLL, 0);
+      TLC_AddColumnEx(list, "DATE",  16, ALIGN_CENTER, TuiGetColor(BLUE_YELLOW), TES_UPPERCASE|TES_AUTOHSCROLL, 0);
+      TLC_AddColumnEx(list, "OPEN",  16, ALIGN_RIGHT,  TuiGetColor(BLUE_YELLOW), TES_DECIMAL|TES_AUTOHSCROLL, 2);
+      TLC_AddColumnEx(list, "HIGH",  16, ALIGN_RIGHT,  TuiGetColor(BLUE_YELLOW), TES_DECIMAL|TES_AUTOHSCROLL, 2);
+      TLC_AddColumnEx(list, "LOW",   16, ALIGN_RIGHT,  TuiGetColor(BLUE_YELLOW), TES_DECIMAL|TES_AUTOHSCROLL, 2);
+      TLC_AddColumnEx(list, "CLOSE", 16, ALIGN_RIGHT,  TuiGetColor(BLUE_YELLOW), TES_DECIMAL|TES_AUTOHSCROLL, 2);
 
-      TLC_AddColumn(list, "STOCK", 20, ALIGN_LEFT,   COLOR_PAIR(BLUE_YELLOW));
-      TLC_AddColumn(list, "DATE",  16, ALIGN_CENTER, COLOR_PAIR(BLUE_YELLOW));
-      TLC_AddColumn(list, "OPEN",  16, ALIGN_RIGHT,  COLOR_PAIR(BLUE_YELLOW));
-      TLC_AddColumn(list, "HIGH",  16, ALIGN_RIGHT,  COLOR_PAIR(BLUE_YELLOW));
-      TLC_AddColumn(list, "LOW",   16, ALIGN_RIGHT,  COLOR_PAIR(BLUE_YELLOW));
-      TLC_AddColumn(list, "CLOSE", 16, ALIGN_RIGHT,  COLOR_PAIR(BLUE_YELLOW));
-#else
-      TLC_AddColumn(list, "STOCK", 20, ALIGN_LEFT,   BLUE_YELLOW);
-      TLC_AddColumn(list, "DATE",  16, ALIGN_CENTER, BLUE_YELLOW);
-      TLC_AddColumn(list, "OPEN",  16, ALIGN_RIGHT,  BLUE_YELLOW);
-      TLC_AddColumn(list, "HIGH",  16, ALIGN_RIGHT,  BLUE_YELLOW);
-      TLC_AddColumn(list, "LOW",   16, ALIGN_RIGHT,  BLUE_YELLOW);
-      TLC_AddColumn(list, "CLOSE", 16, ALIGN_RIGHT,  BLUE_YELLOW);
-#endif  
       TLC_AddItem(list, "SCC\t01-01-2018\t560.00\t563.50\t560.00\t562.00\t", 6);
       TLC_AddItem(list, "PTTEP\t01-01-2018\t160.00\t163.50\t160.00\t162.00\t", 6);
       TLC_AddItem(list, "PTTGC\t01-01-2018\t70.00\t73.50\t70.00\t72.00\t", 6);
@@ -296,7 +239,37 @@ LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       TLC_AddItem(list, "PTT\t28-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
       TLC_AddItem(list, "PTT\t29-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
       TLC_AddItem(list, "PTT\t30-01-2018\t60.00\t63.50\t60.00\t62.00\t", 6);
+      
+      item.col   = 0;
+      item.idx   = 0;
+      item.attrs = TuiGetColor(GREEN_MAGENTA); 
+      TLC_SetItem(list, LCFM_ATTRS, &item);
+      
+      item.col   = 1;
+      item.idx   = 1;
+      item.attrs = TuiGetColor(YELLOW_BLUE); 
+      TLC_SetItem(list, LCFM_ATTRS, &item);
+      
+      item.col   = 2;
+      item.idx   = 2;
+      item.attrs = TuiGetColor(YELLOW_RED); 
+      TLC_SetItem(list, LCFM_ATTRS, &item);
+      
+      item.col   = 3;
+      item.idx   = 3;
+      item.attrs = TuiGetColor(GREEN_BLUE); 
+      TLC_SetItem(list, LCFM_ATTRS, &item);
+      
+      item.col   = 4;
+      item.idx   = 4;
+      item.attrs = TuiGetColor(CYAN_MAGENTA); 
+      TLC_SetItem(list, LCFM_ATTRS, &item);
 
+      item.col   = 5;
+      item.idx   = 14;
+      item.attrs = TuiGetColor(CYAN_MAGENTA); 
+      TLC_SetItem(list, LCFM_ATTRS, &item);
+      
       return TUI_CONTINUE;
     }
 
@@ -308,27 +281,22 @@ LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       }
       else if (wparam == IDC_MSG)
       {
-        param.owner = wnd;
-        param.param = 0;
-        param.OnOK  = onok;
-        param.OnYes = onyes;
-        param.OnNo  = onno;
-        param.OnCancel = oncancel;
-      
-        TuiMsgBoxParam(wnd,
+
+        TuiMsgBox(wnd,
           "Hello World",
           "Welcome to the real world.",
-          MB_OK|MB_YESNOCANCEL,
-          &param);
+          MB_OK);
 
+
+      }
+      else if (wparam == IDC_EDITCELL)
+      {
+        list = TuiGetWndItem(wnd, IDC_LISTBOX1);
+        /*TLC_EditItem(list, 4, 3);*/
       }
       break;
     }
-    case TWM_DLGMSGID:
-    {
-      on_dlgmsgid(wnd, wparam);
-      break;
-    }
+
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }

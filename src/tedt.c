@@ -12,7 +12,7 @@
 #include <qio_init.h>
 #endif
 
-#include "tui.h"
+#include "m_tui.h"
 
 /*-------------------------------------------------------------------
  * EDIT functions
@@ -72,11 +72,7 @@ LONG TEDT_OnCreate(TWND wnd)
   edit->limitchars = (TES_AUTOHSCROLL & style ? TUI_MAX_WNDTEXT : rc.cols);
   
   TuiSetWndParam(wnd, (LPVOID)edit);
-#ifdef __USE_CURSES__
-  TuiSetWndTextAttrs(wnd, COLOR_PAIR(CYAN_BLACK));
-#elif defined __USE_QIO__
-  TuiSetWndTextAttrs(wnd, CYAN_BLACK);
-#endif
+  TuiSetWndTextAttrs(wnd, TuiGetSysColor(COLOR_EDTTEXT));
  
   return TUI_CONTINUE;
 }
@@ -207,11 +203,7 @@ VOID TEDT_OnChar(TWND wnd, LONG ch)
   
   if (TuiIsWndEnabled(wnd))
   {
-#ifdef __USE_CURSES__
-    attrs |= A_UNDERLINE;
-#elif defined __USE_QIO__
-    attrs |= 0;
-#endif
+    attrs = TuiUnderlineText(attrs);
   }
 
   TuiGetWndText(wnd, text, TUI_MAX_WNDTEXT);
@@ -432,11 +424,7 @@ VOID TEDT_OnPaint(TWND wnd, TDC dc)
     
   if (TuiIsWndEnabled(wnd))
   {
-#ifdef __USE_CURSES__
-    attrs |= A_UNDERLINE;
-#elif defined __USE_QIO__
-    attrs |= 0;
-#endif
+    attrs = TuiUnderlineText(attrs);
   }
   
   TuiGetWndRect(wnd, &rc);
@@ -519,6 +507,15 @@ VOID TEDT_OnSetDecWidth(TWND wnd, INT width)
   edit->decwidth = width;
 }
 
+VOID TEDT_OnSetText(TWND wnd, LPCSTR text)
+{
+  TEDIT edit = 0;
+  
+  edit = (TEDIT)TuiGetWndParam(wnd);
+  TuiGetWndText(wnd, edit->editbuf, TUI_MAX_WNDTEXT);
+  edit->firstvisit = 1;
+}
+
 LONG EDITPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   switch (msg)
@@ -530,6 +527,12 @@ LONG EDITPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     case TWM_DESTROY:
     {
       TEDT_OnDestroy(wnd);
+      return 0;
+    }
+    case TWM_SETTEXT:
+    {
+      TuiDefWndProc(wnd, msg, wparam, lparam);
+      TEDT_OnSetText(wnd, (LPCSTR)lparam);
       return 0;
     }
     case TWM_SETFOCUS:
@@ -574,4 +577,3 @@ LONG EDITPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
-

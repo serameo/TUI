@@ -12,7 +12,7 @@
 #include <qio_init.h>
 #endif
 
-#include "tui.h"
+#include "m_tui.h"
 
 /*-------------------------------------------------------------------
  * LISTBOX functions
@@ -47,6 +47,7 @@ typedef struct _TUILISTBOXSTRUCT _TLISTBOX;
 typedef struct _TUILISTBOXSTRUCT *TLISTBOX;
 
 tlistbox_t* _TLB_FindItemByIndex(TWND wnd, INT idx);
+VOID _TLB_OnSelChanged(TWND wnd);
 
 INT TLB_OnCountItemCheck(TWND wnd);
 INT TLB_OnGetItemChecked(TWND wnd, INT idx);
@@ -102,22 +103,18 @@ LONG TLB_OnCreate(TWND wnd)
   {
     return TUI_ERROR;
   }
-  lb->firstvisible = -1;
-  lb->cursel       = -1;
-  lb->nitems        = 0;
-  lb->firstitem    = 0;
-  lb->lastitem     = 0;
-  lb->selitem      = 0;
-  lb->firstvisibleitem = 0;
-  lb->checkeditems = 0;
-  lb->lastitemchecked  = 0;
+  lb->firstvisible      = -1;
+  lb->cursel            = -1;
+  lb->nitems            = 0;
+  lb->firstitem         = 0;
+  lb->lastitem          = 0;
+  lb->selitem           = 0;
+  lb->firstvisibleitem  = 0;
+  lb->checkeditems      = 0;
+  lb->lastitemchecked   = 0;
   
   TuiSetWndParam(wnd, (LPVOID)lb);
-#ifdef __USE_CURSES__
-  TuiSetWndTextAttrs(wnd, COLOR_PAIR(YELLOW_BLUE));
-#elif defined __USE_QIO__
-  TuiSetWndTextAttrs(wnd, YELLOW_BLUE);
-#endif
+  TuiSetWndTextAttrs(wnd, TuiGetSysColor(COLOR_LBXTEXT));
   
   return TUI_CONTINUE;
 }
@@ -168,10 +165,19 @@ LONG TLB_OnKillFocus(TWND wnd)
   return rc;
 }
 
+VOID _TLB_OnSelChanged(TWND wnd)
+{
+  NMHDR nmhdr;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLBN_SELCHANGED;
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+}
+
 VOID TLB_OnKeyDown(TWND wnd, LONG ch)
 {
   TLISTBOX lb = 0;
-  NMHDR nmhdr;
   INT repaint = 0;
   DWORD style = TuiGetWndStyle(wnd);
   INT lines = 0;
@@ -264,11 +270,7 @@ VOID TLB_OnKeyDown(TWND wnd, LONG ch)
     
     TuiInvalidateWnd(wnd);
     /* send notification */
-    nmhdr.id   = TuiGetWndID(wnd);
-    nmhdr.ctl  = wnd;
-    nmhdr.code = TLBN_SELCHANGED;
-    TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
-
+    _TLB_OnSelChanged(wnd);
   }
   lb->selitem = _TLB_FindItemByIndex(wnd, lb->cursel);
   lb->firstvisibleitem = _TLB_FindItemByIndex(wnd, lb->firstvisible);
@@ -352,11 +354,7 @@ VOID TLB_OnPaint(TWND wnd, TDC dc)
             rc.y+(i-lb->firstvisible), 
             rc.x, 
             buf, 
-#ifdef __USE_CURSES__
-            (i == lb->cursel ? A_REVERSE|attrs : attrs));
-#elif defined __USE_QIO__
-            0); /* highlight */
-#endif
+            (i == lb->cursel ? TuiReverseColor(attrs) : attrs));
         }
       }/* not owner draw */
     } /* for each item */
@@ -497,7 +495,6 @@ LONG TLB_OnGetItemCount(TWND wnd)
 VOID TLB_OnSetCurSel(TWND wnd, INT idx)
 {
   TLISTBOX lb = 0;
-  NMHDR nmhdr;
   RECT rc;
   
   lb = (TLISTBOX)TuiGetWndParam(wnd);
@@ -524,10 +521,12 @@ VOID TLB_OnSetCurSel(TWND wnd, INT idx)
   
   TuiInvalidateWnd(wnd);
   /* send notification */
+/*
   nmhdr.id   = TuiGetWndID(wnd);
   nmhdr.ctl  = wnd;
   nmhdr.code = TLBN_SELCHANGED;
   TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+*/
 
   lb->selitem = _TLB_FindItemByIndex(wnd, lb->cursel);
   lb->firstvisibleitem = _TLB_FindItemByIndex(wnd, lb->firstvisible);
@@ -728,3 +727,4 @@ LONG LISTBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
 }
+
