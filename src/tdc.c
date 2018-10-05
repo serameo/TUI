@@ -137,3 +137,38 @@ LONG TuiGetYX(TDC dc, INT* y, INT* x)
   return TUI_OK;
 }
 
+LONG TuiDrawFrame(TDC dc, RECT* rcframe, LPCSTR caption, DWORD attrs)
+{
+  CHAR buf[TUI_MAX_WNDTEXT+1];
+  
+  TuiDrawBorder(dc, rcframe);
+  if (caption)
+  {
+    TuiPrintTextAlignment(buf, caption, strlen(caption)+2, DT_CENTER);
+    TuiDrawText(dc, rcframe->y, rcframe->x, buf, attrs);
+  }
+  return TUI_OK;
+}
+
+LONG TuiDrawBorder(TDC dc, RECT* rcwnd)
+{
+#ifdef __USE_CURSES__
+  /* left vertical line */
+  mvwvline(dc->win, rcwnd->y, rcwnd->x, ACS_VLINE, rcwnd->lines);
+  /* right vertical line */
+  mvwvline(dc->win, rcwnd->y, rcwnd->x + rcwnd->cols, ACS_VLINE, rcwnd->lines);
+  /* top horizontal line */
+  mvwhline(dc->win, rcwnd->y, rcwnd->x, ACS_HLINE, rcwnd->cols);
+  /* bottom horizontal line */
+  mvwhline(dc->win, rcwnd->y + rcwnd->lines, rcwnd->x, ACS_HLINE, rcwnd->cols);
+  /* upper left */
+  mvwaddch(dc->win, rcwnd->y, rcwnd->x, ACS_ULCORNER);
+  /* upper right */
+  mvwaddch(dc->win, rcwnd->y, rcwnd->x + rcwnd->cols, ACS_URCORNER);
+  /* lower left */
+  mvwaddch(dc->win, rcwnd->y + rcwnd->lines, rcwnd->x, ACS_LLCORNER);
+  /* lower right */
+  mvwaddch(dc->win, rcwnd->y + rcwnd->lines, rcwnd->x + rcwnd->cols, ACS_LRCORNER);
+#endif
+  return TUI_OK;
+}

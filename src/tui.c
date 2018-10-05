@@ -73,6 +73,7 @@ struct _TUIENVSTRUCT
   /* last dialog returned message */
   UINT             dlgmsgid;
   INT              themeid;
+  ttheme_t         themes[THEME_LAST];
 };
 
 struct _TUIWINDOWSTRUCT
@@ -124,6 +125,7 @@ tthemeitem_t STANDARD_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -137,6 +139,7 @@ tthemeitem_t LHS_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -150,6 +153,7 @@ tthemeitem_t ASP_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -163,6 +167,7 @@ tthemeitem_t CNS_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -176,6 +181,7 @@ tthemeitem_t KTZ_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -189,6 +195,7 @@ tthemeitem_t YUANTA_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -202,6 +209,7 @@ tthemeitem_t KSS_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -215,6 +223,7 @@ tthemeitem_t PST_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -228,6 +237,7 @@ tthemeitem_t MBKET_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -241,6 +251,7 @@ tthemeitem_t AIRA_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -254,6 +265,7 @@ tthemeitem_t ASL_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
@@ -267,28 +279,14 @@ tthemeitem_t MERCHANT_THEME[] =
   { BLUE_YELLOW }, /* COLOR_HDRTEXT     */
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
+  { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
   /* last color */
   { 0 }  
 };
 
+/* global environment variable */
 TENV genvptr = 0;
-ttheme_t gthemes[] =
-{
-  { &STANDARD_THEME[0]  },
-  { &LHS_THEME[0]       },
-  { &ASP_THEME[0]       },
-  { &CNS_THEME[0]       },
-  { &KTZ_THEME[0]       },
-  { &YUANTA_THEME[0]    },
-  { &KSS_THEME[0]       },
-  { &PST_THEME[0]       },
-  { &MBKET_THEME[0]     },
-  { &AIRA_THEME[0]      },
-  { &ASL_THEME[0]       },
-  { &MERCHANT_THEME[0]  },
-  /* last theme */
-  { 0 }
-};
+
 
 /*-------------------------------------------------------------------
  * internal functions
@@ -312,6 +310,7 @@ LONG _TuiDequeMsg();
 LONG _TuiRemoveAllMsgs();
 LONG _TuiAlignmentPrint(LPSTR out, LPCSTR in, LONG limit, INT align);
 VOID _TuiInitColors();
+VOID _TuiInitThemes();
 
 LONG STATICPROC(TWND, UINT, WPARAM, LPARAM);
 LONG EDITPROC(TWND, UINT, WPARAM, LPARAM);
@@ -360,6 +359,24 @@ INT   TuiSetTheme(INT themeid)
   }
   return oldtheme;
 }
+
+VOID _TuiInitThemes()
+{
+  TENV env = genvptr;
+  env->themes[THEME_STANDARD].theme = STANDARD_THEME;
+  env->themes[THEME_LHS].theme      = &LHS_THEME[0];
+  env->themes[THEME_ASP].theme      = &ASP_THEME[0];
+  env->themes[THEME_CNS].theme      = &CNS_THEME[0];
+  env->themes[THEME_KTZ].theme      = &KTZ_THEME[0];
+  env->themes[THEME_YUANTA].theme   = &YUANTA_THEME[0];
+  env->themes[THEME_KSS].theme      = &KSS_THEME[0];
+  env->themes[THEME_PST].theme      = &PST_THEME[0];
+  env->themes[THEME_MBKET].theme    = &MBKET_THEME[0];
+  env->themes[THEME_AIRA].theme     = &AIRA_THEME[0];
+  env->themes[THEME_ASL].theme      = &ASL_THEME[0];
+  env->themes[THEME_MERCHANT].theme = &MERCHANT_THEME[0];
+}
+
 
 VOID _TuiInitColors()
 {
@@ -451,8 +468,6 @@ LONG TuiStartup()
     
     start_color();
     
-    _TuiInitColors();
-    
     env->dc.win    = stdscr;
     env->nextmove  = TVK_ENTER;
     env->prevmove  = KEY_BTAB;
@@ -468,6 +483,9 @@ LONG TuiStartup()
     env->dc.win = &qio_field;
 #endif
   }
+    
+  _TuiInitColors();
+  _TuiInitThemes();
 
   return (genvptr ? TUI_OK : TUI_ERROR);
 }
@@ -1615,6 +1633,7 @@ LONG _TuiDefWndProc_OnEraseBk(TWND wnd, TDC dc)
   CHAR buf[TUI_MAX_WNDTEXT + 1];
   RECT rc;
   DWORD attrs = TuiGetWndTextAttrs(wnd);
+  DWORD style = TuiGetWndStyle(wnd);
   
   if (TuiIsWndVisible(wnd))
   {
@@ -1624,6 +1643,18 @@ LONG _TuiDefWndProc_OnEraseBk(TWND wnd, TDC dc)
     for (i = 0; i < rc.lines; ++i)
     {
       TuiDrawText(dc, rc.y + i, rc.x, buf, attrs);
+    }
+    if (style & TWS_BORDER)
+    {
+      if (style & TWS_WINDOW)
+      {
+        TuiGetWndText(wnd, buf, TUI_MAX_WNDTEXT);
+        TuiDrawFrame(dc, &rc, buf, TuiReverseColor(attrs));
+      }
+      else
+      {
+        TuiDrawBorder(dc, &rc);
+      }
     }
   }
   return TUI_OK;
@@ -1744,7 +1775,7 @@ DWORD TuiGetSysColor(INT idx)
     idx = 0;
   }
 #ifdef __USE_CURSES__
-  return COLOR_PAIR(gthemes[env->themeid].theme[idx].id);
+  return COLOR_PAIR(env->themes[env->themeid].theme[idx].id);
 #endif
   return 0;
 }
@@ -1775,6 +1806,7 @@ DWORD TuiUnderlineText(DWORD attrs)
 
 DWORD TuiGetSysColorTheme(INT themeid, INT idx)
 {
+  TENV env = genvptr;
   if (themeid < 0 || themeid >= THEME_LAST)
   {
     themeid = 0;
@@ -1784,7 +1816,7 @@ DWORD TuiGetSysColorTheme(INT themeid, INT idx)
     idx = 0;
   }
 #ifdef __USE_CURSES__
-  return COLOR_PAIR(gthemes[themeid].theme[idx].id);
+  return COLOR_PAIR(env->themes[env->themeid].theme[idx].id);
 #endif
   return 0;
 }

@@ -28,7 +28,7 @@
 WNDTEMPL dlg1[] =
 {
   /* 1st object is always dialog */
-  { "mywndproc", "Dialog1", 1,  0,  0, 25, 80, TWS_WINDOW, 0 },
+  { "mywndproc", "Dialog1", 1,  0,  0, 25, 80, TWS_WINDOW|TWS_BORDER, 0 },
   /* 2nd and others are controls */
   { STATIC, "Name:",    100,  1,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
   { EDIT,   "12345678901234567890",       IDC_NAME,  1, 18,  1, 16, 
@@ -54,11 +54,12 @@ WNDTEMPL dlg1[] =
   { EDIT,   "399.50", IDC_PRICE,  6, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|
       TES_RIGHT|TES_DECIMAL|TES_AUTOHSCROLL, 0 },
-  { LISTBOX,"",               IDC_LISTBOX1,  8,  1,  5, 16, TWS_CHILD|TWS_VISIBLE|TLBS_CENTER, 0 },
+  { LISTBOX,"",               IDC_LISTBOX1,  8,  1,  5, 16, 
+    TWS_CHILD|TWS_VISIBLE|TLBS_CENTER|TWS_BORDER, 0 },
   { LISTBOX,"",               IDC_LISTBOX2,  8, 21,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_CHECKBOX, 0 },
+    TWS_CHILD|TWS_VISIBLE|TLBS_CHECKBOX|TWS_BORDER, 0 },
   { LISTBOX,"",               IDC_LISTBOX3,  8, 41,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_RADIOBOX|TLBS_RIGHT, 0 },
+    TWS_CHILD|TWS_VISIBLE|TLBS_RADIOBOX|TLBS_RIGHT|TWS_BORDER, 0 },
   { BUTTON, "Dlg2",    IDC_OPENDLG2,  14,  1,  1,   10, TWS_CHILD|TWS_VISIBLE|TWS_DISABLED, 0 },
   { BUTTON, "Dlg3",    IDC_OPENDLG3,  14,  21,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
   { BUTTON, "Close",    IDC_CLOSE,    14,  41,  1,  11, TWS_CHILD|TWS_VISIBLE, 0 },

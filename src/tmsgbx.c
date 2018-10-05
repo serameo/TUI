@@ -39,6 +39,7 @@ VOID TMSGBX_OnPaint(TWND wnd, TDC dc)
 INT  TMSGBX_OnInitDailog(TWND wnd, LPARAM lparam)
 {
   TWND btn;
+  TWND caption;
   MSGBOXPARAM *msgbx = 0;
   
   msgbx = (MSGBOXPARAM*)malloc(sizeof(MSGBOXPARAM));
@@ -63,6 +64,13 @@ INT  TMSGBX_OnInitDailog(TWND wnd, LPARAM lparam)
     TWM_SETTEXTATTRS,
     (WPARAM)(TuiGetColor(BLACK_WHITE)),
     (LPARAM)0);
+    
+  caption = TuiGetWndItem(wnd, MB_CAPTION);
+  TuiSendMsg(caption,
+    TWM_SETTEXTATTRS,
+    (WPARAM)(TuiGetSysColor(COLOR_WNDTITLE)),
+    (LPARAM)0);
+  
   return TUI_CONTINUE;
 }
 
@@ -225,9 +233,9 @@ TWND  _TuiMsgBox(TWND parent, LPCSTR caption, LPCSTR text, UINT flags)
   
   /* move caption to center */
   msgbox[CaptionStatic].lines = 1;
-  msgbox[CaptionStatic].y     = 1;
-  msgbox[CaptionStatic].x     = 1;
-  msgbox[CaptionStatic].cols  = msgbox[Msgbox].cols - 2;
+  msgbox[CaptionStatic].y     = 0;
+  msgbox[CaptionStatic].x     = 0;
+  msgbox[CaptionStatic].cols  = msgbox[Msgbox].cols;
   
   /* move buttons to center */
   if (nbtns > 0)
