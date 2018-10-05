@@ -12,7 +12,7 @@
 #include <qio_init.h>
 #endif
 
-#include "m_tui.h"
+#include "tui.h"
 
 struct _TWNDPROCSTRUCT
 {
@@ -437,7 +437,7 @@ LONG TuiStartup()
     TuiRegisterCls(LISTBOX,  LISTBOXPROC);
     TuiRegisterCls(BUTTON,   BUTTONPROC);
     TuiRegisterCls(LISTCTRL, LISTCTRLPROC);
-    TuiRegisterCls(PAGECTRL, PAGECTRLPROC);
+    /*TuiRegisterCls(PAGECTRL, PAGECTRLPROC);*/
     TuiRegisterCls(MSGBOX,   MSGBOXPROC);
 
     env->themeid = THEME_STANDARD;

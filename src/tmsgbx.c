@@ -12,22 +12,11 @@
 #include <qio_init.h>
 #endif
 
-#include "m_tui.h"
+#include "tui.h"
 /*-------------------------------------------------------------------
  * Message box functions
  *-----------------------------------------------------------------*/
-/*
-struct _MSGBOXSTRUCT
-{
-  TWND  owner;
-  VOID* param;
-  VOID  (*OnOK)(TWND, VOID*);
-  VOID  (*OnYes)(TWND, VOID*);
-  VOID  (*OnNo)(TWND, VOID*);
-  VOID  (*OnCancel)(TWND, VOID*);
-};
-typedef struct _MSGBOXSTRUCT MSGBOXPARAM;
-*/
+
 
 TWND  _TuiMsgBox(TWND parent, LPCSTR caption, LPCSTR text, UINT flags);
 INT  TMSGBX_OnInitDailog(TWND wnd, LPARAM lparam);
@@ -49,9 +38,12 @@ VOID TMSGBX_OnPaint(TWND wnd, TDC dc)
 
 INT  TMSGBX_OnInitDailog(TWND wnd, LPARAM lparam)
 {
+  TWND btn;
   MSGBOXPARAM *msgbx = 0;
+  
   msgbx = (MSGBOXPARAM*)malloc(sizeof(MSGBOXPARAM));
   memset(msgbx, 0, sizeof(MSGBOXPARAM));
+  
   if (lparam)
   {
     if (!msgbx)
@@ -61,6 +53,16 @@ INT  TMSGBX_OnInitDailog(TWND wnd, LPARAM lparam)
     memcpy(msgbx, (MSGBOXPARAM*)lparam, sizeof(MSGBOXPARAM));
   }
   TuiSetWndParam(wnd, (LPVOID)msgbx);
+  
+  btn = TuiGetFirstActiveChildWnd(wnd);
+  if (btn)
+  {
+    TuiSetFocus(btn);
+  }
+  TuiSendMsg(wnd,
+    TWM_SETTEXTATTRS,
+    (WPARAM)(TuiGetColor(BLACK_WHITE)),
+    (LPARAM)0);
   return TUI_CONTINUE;
 }
 
@@ -113,15 +115,6 @@ LONG MSGBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   {
     case TWM_INITDIALOG:
     {
-      TWND btn = TuiGetFirstActiveChildWnd(wnd);
-      if (btn)
-      {
-        TuiSetFocus(btn);
-      }
-      TuiSendMsg(wnd,
-        TWM_SETTEXTATTRS,
-        (WPARAM)(TuiGetReverseSysColor(COLOR_WNDTEXT)),
-        (LPARAM)0);
       return TMSGBX_OnInitDailog(wnd, lparam);
     }
     

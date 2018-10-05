@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curses.h>
-#include "m_tui.h"
+#include "tui.h"
 
 #define IDC_STATUSBAR    199
 #define IDC_NAME         200
@@ -72,7 +72,7 @@ WNDTEMPL dlg3[] =
   /* 1st object is always dialog */
   { "mylistctlproc", "Dialog3", 2,  0,  0, 25, 80, TWS_WINDOW, 0 },
   /* 2nd and others are controls */
-  { LISTCTRL, "",    IDC_LISTBOX1,  1,  1,  16,  79, TWS_CHILD|TWS_VISIBLE/*|TLCS_NOHEADER*/, 0 },
+  { LISTCTRL, "",    IDC_LISTBOX1,  1,  1,  16,  79, TWS_CHILD|TWS_VISIBLE|TLCS_EDITABLE/*|TLCS_NOHEADER*/, 0 },
   { BUTTON, "Edit",    IDC_EDITCELL,  20,  1,  1,  14, TWS_CHILD|TWS_VISIBLE, 0 },
   { BUTTON, "Message",    IDC_MSG,  20,  20,  1,  15, TWS_CHILD|TWS_VISIBLE, 0 },
   { BUTTON, "Close",    IDC_CLOSE,  20,  40,  1,  15, TWS_CHILD|TWS_VISIBLE, 0 },
