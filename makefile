@@ -1,7 +1,7 @@
 #
 # File Name: makefile
 # Author: Seree Rakwong
-# Date: 28-NOV-2017
+# Date: 01-OCT-2018
 #
 
 TARGET = tui_test_linux
@@ -17,14 +17,14 @@ all: default
 BIN_DIR  = ./bin
 SRC_DIR  = ./src
 INC_DIR  = ./include
-SOURCES  = $(SRC_DIR)/m_tui.c \
-           $(SRC_DIR)/m_tdc.c \
-           $(SRC_DIR)/m_tmsgbx.c \
-           $(SRC_DIR)/m_tstc.c \
-           $(SRC_DIR)/m_tedt.c \
-           $(SRC_DIR)/m_tbtn.c \
-           $(SRC_DIR)/m_tlb.c \
-           $(SRC_DIR)/m_tlctl.c \
+SOURCES  = $(SRC_DIR)/tui.c \
+           $(SRC_DIR)/tdc.c \
+           $(SRC_DIR)/tmsgbx.c \
+           $(SRC_DIR)/tstc.c \
+           $(SRC_DIR)/tedt.c \
+           $(SRC_DIR)/tbtn.c \
+           $(SRC_DIR)/tlb.c \
+           $(SRC_DIR)/tlctl.c \
            $(SRC_DIR)/tui_test.c
 
 
