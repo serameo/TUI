@@ -176,25 +176,111 @@ struct _DRAWITEMSTRUCT
 typedef struct _DRAWITEMSTRUCT DRAWITEM;
 
 /* colors */
-/*
- 216 #define COLOR_BLACK     0
- 217 #define COLOR_RED       1
- 218 #define COLOR_GREEN     2
- 219 #define COLOR_YELLOW    3
- 220 #define COLOR_BLUE      4
- 221 #define COLOR_MAGENTA   5
- 222 #define COLOR_CYAN      6
- 223 #define COLOR_WHITE     7
+enum
+{
+  BLACK_RED,
+  BLACK_GREEN,
+  BLACK_YELLOW,
+  BLACK_BLUE,
+  BLACK_MAGENTA,
+  BLACK_CYAN,
+  BLACK_WHITE,
+  RED_BLACK,
+  RED_RED,
+  RED_GREEN,
+  RED_YELLOW,
+  RED_BLUE,
+  RED_MAGENTA,
+  RED_CYAN,
+  RED_WHITE,
+  GREEN_BLACK,
+  GREEN_RED,
+  GREEN_GREEN,
+  GREEN_YELLOW,
+  GREEN_BLUE,
+  GREEN_MAGENTA,
+  GREEN_CYAN,
+  GREEN_WHITE,
+  YELLOW_BLACK,
+  YELLOW_RED,
+  YELLOW_GREEN,
+  YELLOW_YELLOW,
+  YELLOW_BLUE,
+  YELLOW_MAGENTA,
+  YELLOW_CYAN,
+  YELLOW_WHITE,
+  BLUE_BLACK,
+  BLUE_RED,
+  BLUE_GREEN,
+  BLUE_YELLOW,
+  BLUE_MAGENTA,
+  BLUE_CYAN,
+  BLUE_WHITE,
+  MAGENTA_BLACK,
+  MAGENTA_RED,
+  MAGENTA_GREEN,
+  MAGENTA_YELLOW,
+  MAGENTA_BLUE,
+  MAGENTA_CYAN,
+  MAGENTA_WHITE,
+  CYAN_BLACK,
+  CYAN_RED,
+  CYAN_GREEN,
+  CYAN_YELLOW,
+  CYAN_BLUE,
+  CYAN_MAGENTA,
+  CYAN_WHITE,
+  WHITE_BLACK,
+  WHITE_RED,
+  WHITE_GREEN,
+  WHITE_YELLOW,
+  WHITE_BLUE,
+  WHITE_MAGENTA,
+  WHITE_CYAN,
+  /* simple theme */
+  /*
+  COLOR_WNDTEXT     = WHITE_BLACK,
+  COLOR_BTNENABLED  = BLACK_CYAN,
+  COLOR_BTNDISABLED = WHITE_BLACK,
+  COLOR_BTNFOCUSED  = BLACK_WHITE,
+  COLOR_HDRTEXT     = BLUE_YELLOW,
+  */
+  /* no color */
+  COLOR_NONE = 0
+};
 
-*/
-#define CYAN_BLACK              1
-#define BLACK_CYAN              2
-#define GREEN_BLACK             3
-#define BLACK_GREEN             4
-#define YELLOW_BLACK            5
-#define BLACK_YELLOW            6
-#define BLUE_YELLOW             7
-#define YELLOW_BLUE             8
+enum
+{
+  THEME_STANDARD = 0,
+  THEME_LHS,
+  THEME_ASP,
+  THEME_CNS,
+  THEME_KTZ,
+  THEME_YUANTA,
+  THEME_KSS,
+  THEME_PST,
+  THEME_MBKET,
+  THEME_AIRA,
+  THEME_ASL,
+  THEME_MERCHANT,
+  /* standard */
+  THEME_LAST
+};
+
+enum /*THEME_STANDARD*/
+{
+  /* simple theme */
+  COLOR_WNDTEXT = 0,
+  COLOR_BTNENABLED,
+  COLOR_BTNDISABLED,
+  COLOR_BTNFOCUSED,
+  COLOR_HDRTEXT,
+  COLOR_EDTTEXT,
+  COLOR_LBXTEXT,
+  /* last color */
+  COLOR_LAST
+};
+
 
 #define ALIGN_LEFT              0
 #define ALIGN_CENTER            1
@@ -243,6 +329,7 @@ typedef struct _DRAWITEMSTRUCT DRAWITEM;
 #define TLBN_FIRST              (TWM_USER +  200)
 #define TBN_FIRST               (TWM_USER +  250)
 #define TLCN_FIRST              (TWM_USER +  300)
+#define TSCRLLN_FIRST           (TWM_USER +  350)
 
 /*-------------------------------------------------------------------
  * msgbox
@@ -367,6 +454,8 @@ typedef struct _DRAWITEMSTRUCT DRAWITEM;
 #define TBS_PRESSED             0x0001
 #define TBS_FOCUSED             0x0002
 
+#define TBM_PRESS               (TWM_USER  +    1)
+
 #define TBN_SETFOCUS            (TBN_FIRST  +   0)
 #define TBN_KILLFOCUS           (TBN_FIRST  +   1)
 
@@ -375,6 +464,8 @@ typedef struct _DRAWITEMSTRUCT DRAWITEM;
  *-----------------------------------------------------------------*/
 #define LISTCTRL                "LISTCTRL"
 
+#define TLCS_NOHEADER           0x00010000
+#define TLCS_EDITABLE           0x00020000
 
 #define TLCM_ADDCOLUMN          (TWM_USER  +    1)
 #define TLCM_DELETECOLUMN       (TWM_USER  +    2)
@@ -385,13 +476,34 @@ typedef struct _DRAWITEMSTRUCT DRAWITEM;
 #define TLCM_SETITEM            (TWM_USER  +    7)
 #define TLCM_GETITEM            (TWM_USER  +    8)
 #define TLCM_GETITEMCOUNT       (TWM_USER  +    9)
-
+#define TLCM_INVALIDATEITEM     (TWM_USER  +   10)
+#define TLCM_SETEDITSTYLE       (TWM_USER  +   11)
+#define TLCM_GETEDITSTYLE       (TWM_USER  +   12)
+#define TLCM_GETCURSELROW       (TWM_USER  +   13)
+#define TLCM_SETCURSELROW       (TWM_USER  +   14)
+/*
+#define TLCM_EDITITEM           (TWM_USER  +   13)
+*/
 /*
 #define TLCN_FIRST              (TWM_USER +  300)
 */
+/* listctrl states */
+#define LCS_VIEW                0
+#define LCS_BEGINEDIT           1
+#define LCS_EDITING             2
+#define LCS_ENDEDIT             3
+#define LCS_BEGINMOVING         4
+#define LCS_MOVINGCURSOR        5
+#define LCS_ENDMOVING           6
+
 #define TLCN_SETFOCUS           (TLCN_FIRST  +    0)
 #define TLCN_KILLFOCUS          (TLCN_FIRST  +    1)
 #define TLCN_SELCHANGED         (TLCN_FIRST  +    2)
+#define TLCN_BEGINEDIT          (TLCN_FIRST  +    3)
+#define TLCN_ENDEDITOK          (TLCN_FIRST  +    4)
+#define TLCN_ENDEDITCANCEL      (TLCN_FIRST  +    5)
+#define TLCN_BEGINMOVING        (TLCN_FIRST  +    6)
+#define TLCN_ENDMOVING          (TLCN_FIRST  +    7)
 
 #define  LCFM_TEXT              0x0001
 #define  LCFM_ATTRS             0x0002
@@ -412,17 +524,33 @@ struct _HEADERITEMSTRUCT
   INT       cols;
   INT       align;
   DWORD     attrs;
+  DWORD     editstyle;
+  INT       decwidth;
 };
 typedef struct _HEADERITEMSTRUCT HEADERITEM;
 
 /* listctrl macros */
-#define TLC_AddColumn(lc, text, width, al, at)    \
+#define TLC_AddColumn(lc, text, width, al)    \
+do {\
+  HEADERITEM hdr; \
+  hdr.caption = text; \
+  hdr.cols    = width; \
+  hdr.align   = al; \
+  hdr.attrs   = TuiGetSysColor(COLOR_HDRTEXT); \
+  hdr.editstyle = 0; \
+  hdr.decwidth  = 2; \
+  TuiSendMsg(lc, TLCM_ADDCOLUMN, (WPARAM)0, (LPARAM)&hdr); \
+} while (0)
+
+#define TLC_AddColumnEx(lc, text, width, al, at, es, dec)    \
 do {\
   HEADERITEM hdr; \
   hdr.caption = text; \
   hdr.cols    = width; \
   hdr.align   = al; \
   hdr.attrs   = at; \
+  hdr.editstyle = es; \
+  hdr.decwidth  = dec; \
   TuiSendMsg(lc, TLCM_ADDCOLUMN, (WPARAM)0, (LPARAM)&hdr); \
 } while (0)
   
@@ -433,17 +561,44 @@ do {\
 #define TLC_AddItem(lc, text, nitems)    \
   TuiSendMsg(lc, TLCM_ADDITEM, (WPARAM)nitems, (LPARAM)text)
 #define TLC_DeleteItem(lc, idx)    \
-  TuiSendMsg(lc, TLCM_DELETEITEM, (WPARAM)idx, (LPARAM)0)
+  TuiSendMsg(lc, TLCM_DELETEITEM, (WPARAM)0, (LPARAM)idx)
 #define TLC_DeleteAllItems(lc)    \
-  TuiSendMsg(lc, TLCM_DELETEALLITEMS, (WPARAM)0, (LPARAM)0)  
+  TuiSendMsg(lc, TLCM_DELETEALLITEMS, (WPARAM)0, (LPARAM)0)
 #define TLC_SetItem(lc, flags, item)    \
-  TuiSendMsg(lc, TLCM_SETITEMTEXT, (WPARAM)flags, (LPARAM)&subitem)
+  TuiSendMsg(lc, TLCM_SETITEM, (WPARAM)flags, (LPARAM)item)
 #define TLC_GetItem(lc, flags, item)    \
-  TuiSendMsg(lc, TLCM_GETITEMTEXT, (WPARAM)flags, (LPARAM)&subitem);
-  
+  TuiSendMsg(lc, TLCM_GETITEM, (WPARAM)flags, (LPARAM)item)
 #define TLC_GetItemCount(lc)    \
   TuiSendMsg(lc, TLCM_GETITEMCOUNT, (WPARAM)0, (LPARAM)0)
-  
+#define TLC_SetEditStyle(lc, col, es)    \
+  TuiSendMsg(lc, TLCM_SETEDITSTYLE, (WPARAM)col, (LPARAM)es)
+#define TLC_GetEditStyle(lc, col)    \
+  (DWORD)TuiSendMsg(lc, TLCM_GETEDITSTYLE, (WPARAM)col, (LPARAM)0)
+/*
+#define TLC_EditItem(lc, col, idx)    \
+  TuiSendMsg(lc, TLCM_EDITITEM, (WPARAM)col, (LPARAM)idx)
+*/
+#define TLC_GetCurSelRow(lc)    \
+  TuiSendMsg(lc, TLCM_GETCURSELROW, (WPARAM)0, (LPARAM)0)
+#define TLC_SetCurSelRow(lc, idx)    \
+  TuiSendMsg(lc, TLCM_SETCURSELROW, (WPARAM)0, (LPARAM)idx)
+
+/*-------------------------------------------------------------------
+ * page control
+ *-----------------------------------------------------------------*/
+#define PAGECTRL                   "PAGECTRL"
+
+#define TPCM_ADDPAGE               (TWM_USER  +    1)
+#define TPCM_DELETEPAGE            (TWM_USER  +    2)
+
+
+/*-------------------------------------------------------------------
+ * scroll view
+ *-----------------------------------------------------------------*/
+#define SCROLLVIEW                 "SCROLLVIEW"
+
+#define TSVM_INSERTBAND            (TWM_USER  +    1)
+
 /*-------------------------------------------------------------------
  * window functions
  *-----------------------------------------------------------------*/
@@ -465,6 +620,16 @@ void TuiShutdown();
 TENV TuiGetEnv();
 VOID TuiSetNextMove(LONG nextmove);
 UINT TuiGetDlgMsgID();
+DWORD TuiGetSysColor(INT);
+DWORD TuiGetReverseSysColor(INT);
+DWORD TuiReverseColor(DWORD);
+DWORD TuiUnderlineText(DWORD);
+DWORD TuiGetColor(INT);
+
+DWORD TuiGetSysColorTheme(INT, INT);
+DWORD TuiGetReverseSysColorTheme(INT, INT);
+INT   TuiGetTheme();
+INT   TuiSetTheme(INT);
 
 /* window message functions */
 LONG TuiDefWndProc(TWND, UINT, WPARAM, LPARAM);
@@ -493,7 +658,7 @@ TWND TuiCreateWndTempl(
   WNDTEMPL* templs,
   LPVOID    param
 );
-void TuiDestroyWnd(TWND);
+VOID TuiDestroyWnd(TWND);
 TWND TuiGetActiveChildWnd(TWND);
 TWND TuiGetFirstActiveChildWnd(TWND);
 TWND TuiGetLastActiveChildWnd(TWND);
