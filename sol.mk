@@ -4,7 +4,7 @@
 # Date: 28-NOV-2017
 #
 
-TARGET = tui_test_linux
+TARGET = tui_test_sol
 CC     = gcc
 CFLAGS = -g -Wall
 LFLAGS = -lm -lcurses
@@ -30,7 +30,7 @@ SOURCES  = $(SRC_DIR)/tui.c \
 
 OBJECTS  = $(SOURCES:.c=.o)
 INCLUDES = -I$(INC_DIR)
-DEFINES  = -D__UNIX__ -D__LINUX__ -D__USE_CURSES__
+DEFINES  = -D__UNIX__ -D__USE_CURSES__
 
 
 %.o: %.c
