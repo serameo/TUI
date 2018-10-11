@@ -13,10 +13,10 @@ extern "C" {
 /*-------------------------------------------------------------------
  * defines
  *-----------------------------------------------------------------*/
-#define TUI_CONTINUE     1
-#define TUI_OK           0
-#define TUI_ERROR       -1
-#define TUI_MEM         -2
+#define TUI_CONTINUE        1
+#define TUI_OK              0
+#define TUI_ERROR          -1
+#define TUI_MEM            -2
 
 /* miscellaneous */
 #define TUI_MAX_WNDTEXT    80
@@ -114,51 +114,66 @@ typedef unsigned int        UINT32;
 typedef long long           INT64;
 typedef unsigned long long  UINT64;
 
+typedef char                BOOL;
+#define _TRUE_              (BOOL)0
+#define _FALSE_             (BOOL)1
+
+/* device context */
 struct _TUIDEVICECONTEXSTRUCT;
 typedef struct _TUIDEVICECONTEXSTRUCT _TDC;
 typedef struct _TUIDEVICECONTEXSTRUCT *TDC;
 
+/* window handle */
 struct _TUIWINDOWSTRUCT;
 typedef struct _TUIWINDOWSTRUCT _TWND;
 typedef struct _TUIWINDOWSTRUCT *TWND;
 
+/* window procedure */
 typedef long (*TWNDPROC)(TWND, UINT, WPARAM, LPARAM);
 
+/* environment */
 struct _TUIENVSTRUCT;
 typedef struct _TUIENVSTRUCT _TENV;
 typedef struct _TUIENVSTRUCT *TENV;
 
+/* window template */
 struct _WNDTEMPLSTRUCT
 {
-  LPCSTR clsname;
-  LPCSTR text;
-  INT    id;
-  INT    y;
-  INT    x;
-  INT    lines;
-  INT    cols;
-  DWORD  style;
-  INT    (*validate)(TWND, LPCSTR);
+  LPCSTR clsname;     /* window class   */
+  LPCSTR text;        /* window text    */
+  INT    id;          /* window id      */
+  INT    y;           /* y-position     */
+  INT    x;           /* x-position     */
+  INT    lines;       /* window lines   */
+  INT    cols;        /* window columns */
+  DWORD  style;       /* window style   */
+  INT    (*validate)(TWND, LPCSTR);     /* to validate value before exiting */
+                                        /* the edit box return TUI_CONTINUE */
+                                        /* if 2nd parameter is accepted     */
+                                        /* otherwise return TUI_ERROR       */
 };
 typedef struct _WNDTEMPLSTRUCT WNDTEMPL;
 
+/* message structure */
 struct _MSGSTRUCT
 {
-  TWND   wnd;
-  UINT   msg;
-  WPARAM wparam;
-  LPARAM lparam;
+  TWND   wnd;         /* window handle  */
+  UINT   msg;         /* window message */
+  WPARAM wparam;      /* parameter      */
+  LPARAM lparam;      /* parameter      */
 };
 typedef struct _MSGSTRUCT MSG;
 
+/* notify message structure */
 struct _NMHDRSTRUCT
 {
-  INT  id;
-  TWND ctl;
-  UINT code;
+  UINT id;            /* control id     */
+  UINT code;          /* notify code    */
+  TWND ctl;           /* control handle */
 };
 typedef struct _NMHDRSTRUCT NMHDR;
 
+/* window rectangle */
 struct _RECTSTRUCT
 {
   INT y;
@@ -237,14 +252,6 @@ enum
   WHITE_BLUE,
   WHITE_MAGENTA,
   WHITE_CYAN,
-  /* simple theme */
-  /*
-  COLOR_WNDTEXT     = WHITE_BLACK,
-  COLOR_BTNENABLED  = BLACK_CYAN,
-  COLOR_BTNDISABLED = WHITE_BLACK,
-  COLOR_BTNFOCUSED  = BLACK_WHITE,
-  COLOR_HDRTEXT     = BLUE_YELLOW,
-  */
   /* no color */
   COLOR_NONE = 0
 };
@@ -277,6 +284,7 @@ enum /*THEME_STANDARD*/
   COLOR_HDRTEXT,
   COLOR_EDTTEXT,
   COLOR_LBXTEXT,
+  COLOR_WNDTITLE,
   /* last color */
   COLOR_LAST
 };
@@ -288,13 +296,15 @@ enum /*THEME_STANDARD*/
 
 #define TW_HIDE                 0
 #define TW_SHOW                 1
+#define TW_DISABLE              0
+#define TW_ENABLE               1
 
 /* window styles */
 #define TWS_WINDOW              0x00000001
 #define TWS_CHILD               0x00000002
 #define TWS_VISIBLE             0x00000004
-#define TWS_ENABLE              0x00000008
-#define TWS_DISABLED            0x00000010
+#define TWS_DISABLED            0x00000008
+#define TWS_BORDER              0x00000010
 #define TWS_LEFT                0x00000000             /* shared controls style */
 #define TWS_CENTER              0x00010000
 #define TWS_RIGHT               0x00020000
@@ -303,25 +313,31 @@ enum /*THEME_STANDARD*/
 #define TWM_FIRST               100
 #define TWM_CREATE              (TWM_FIRST +    1)
 #define TWM_DESTROY             (TWM_FIRST +    2)
-#define TWM_INITDIALOG          (TWM_FIRST +    3)
-#define TWM_PAINT               (TWM_FIRST +    4)
-#define TWM_SETFOCUS            (TWM_FIRST +    5)
-#define TWM_KILLFOCUS           (TWM_FIRST +    6)
-#define TWM_KEYDOWN             (TWM_FIRST +    7)
-#define TWM_KEYUP               (TWM_FIRST +    8)
-#define TWM_CHAR                (TWM_FIRST +    9)
-#define TWM_NOTIFY              (TWM_FIRST +   10)
-#define TWM_ERASEBK             (TWM_FIRST +   11)
-#define TWM_SETTEXT             (TWM_FIRST +   12)
-#define TWM_GETTEXT             (TWM_FIRST +   13)
-#define TWM_SETTEXTALIGN        (TWM_FIRST +   14)
-#define TWM_COMMAND             (TWM_FIRST +   15)
-#define TWM_SETTEXTATTRS        (TWM_FIRST +   16)
-#define TWM_DRAWITEM            (TWM_FIRST +   17)
-#define TWM_DLGMSGID            (TWM_FIRST +   18)
+#define TWM_INITDIALOG          (TWM_FIRST +    3) /* get when system initialized window frame */
+#define TWM_PAINT               (TWM_FIRST +    4) /* paint window    */
+#define TWM_SETFOCUS            (TWM_FIRST +    5) /* get focus       */
+#define TWM_KILLFOCUS           (TWM_FIRST +    6) /* lost focus      */
+#define TWM_KEYDOWN             (TWM_FIRST +    7) /* key down        */
+#define TWM_KEYUP               (TWM_FIRST +    8) /* key up          */
+#define TWM_CHAR                (TWM_FIRST +    9) /* character input */
+#define TWM_NOTIFY              (TWM_FIRST +   10) /* control sent notify to parent */
+#define TWM_ERASEBK             (TWM_FIRST +   11) /* erase background */
+#define TWM_SETTEXT             (TWM_FIRST +   12) /* set window text  */
+#define TWM_GETTEXT             (TWM_FIRST +   13) /* get window text  */
+#define TWM_SETTEXTALIGN        (TWM_FIRST +   14) /* set text alignment */
+#define TWM_GETTEXTALIGN        (TWM_FIRST +   15) /* set text alignment */
+#define TWM_COMMAND             (TWM_FIRST +   16) /* control sent command to parent */
+#define TWM_SETTEXTATTRS        (TWM_FIRST +   17) /* set text attributes */
+#define TWM_GETTEXTATTRS        (TWM_FIRST +   18) /* set text attributes */
+#define TWM_DRAWITEM            (TWM_FIRST +   19)
+#define TWM_DLGMSGID            (TWM_FIRST +   20)
+#define TWM_SHOWMSGBOX          (TWM_USER  +   21) /* TuiDefFrameWndProc */
+#define TWM_SHOWINPUTBOX        (TWM_USER  +   22) /* TuiDefFrameWndProc */
+#define TWM_SHOWLINEINPUTBOX    (TWM_USER  +   23) /* TuiDefFrameWndProc */
 
 /* application user messages */
-#define TWM_USER          10000
+#define TWM_USER                1000
+#define TFM_USER                2000               /* use defined notification */
 
 /* notification control message */
 #define TSN_FIRST               (TWM_USER +  100)
@@ -329,12 +345,70 @@ enum /*THEME_STANDARD*/
 #define TLBN_FIRST              (TWM_USER +  200)
 #define TBN_FIRST               (TWM_USER +  250)
 #define TLCN_FIRST              (TWM_USER +  300)
-#define TSCRLLN_FIRST           (TWM_USER +  350)
+#define TPCN_FIRST              (TWM_USER +  350)
 
 /*-------------------------------------------------------------------
- * msgbox
+ * frame window
  *-----------------------------------------------------------------*/
-#define MSGBOX                  "MSGBOX"
+/* response from TWM_SHOWMSGBOX, TWM_SHOWINPUTBOX, TWM_SHOWLINEINPUTBOX */
+struct _RESPONSEMSGBOXSTRUCT
+{
+  NMHDR   hdr;
+  CHAR    text[TUI_MAX_WNDTEXT+1];
+};
+typedef struct _RESPONSEMSGBOXSTRUCT RESPONSEMSGBOX;
+
+#define MB_YES               0x00000001
+#define MB_NO                0x00000002
+#define MB_CANCEL            0x00000004
+#define MB_YESNOCANCEL       (MB_YES|MB_NO|MB_CANCEL)
+#define MB_YESNO             (MB_YES|MB_NO)
+
+#define MB_OK                0x00000008
+#define MB_OKCANCEL          (MB_OK|MB_CANCEL)
+
+/*
+ * TuiShowMsgBox()
+ *    Show message box
+ */
+VOID TuiShowMsgBox(
+  TWND    wnd,
+  UINT    id,               /* user defined TFM_USER + #no to handle this value in TWM_NOTIFY */
+  LPCSTR  caption,
+  LPCSTR  text,
+  UINT    flags,            /* combination from MB_XXX  */
+  INT     show);            /* TW_SHOW or TW_HIDE       */
+
+/*
+ * TuiShowInputBox()
+ *    Show dynamically input box
+ */
+VOID TuiShowInputBox(
+  TWND    wnd,
+  UINT    id,
+  LPCSTR  caption,
+  LPCSTR  text,
+  UINT    flags,
+  INT     limit,            /* limit input    */
+  DWORD   edtstyle,         /* TES_XXX        */
+  LPCSTR  deftext,          /* default input  */
+  INT     show);
+
+/*
+ * TuiShowLineInputBox()
+ *    Show dynamically input box but one line 1 character input
+ */
+VOID TuiShowLineInputBox(
+  TWND    wnd,
+  UINT    id,
+  INT     y,                /* y-position */
+  INT     x,                /* x-position */
+  LPCSTR  text,
+  LPCSTR  deftext,
+  LPCSTR  validch,          /* valid characters */
+  INT     align,            /* DT_CENTER or 0   */
+  INT     show);
+
 /*-------------------------------------------------------------------
  * static control
  *-----------------------------------------------------------------*/
@@ -347,7 +421,7 @@ enum /*THEME_STANDARD*/
 /*-------------------------------------------------------------------
  * edit control
  *-----------------------------------------------------------------*/
-#define EDIT                    "EDIT"
+#define EDITBOX                 "EDITBOX"
 
 #define TES_LEFT                TWS_LEFT
 #define TES_CENTER              TWS_CENTER
@@ -359,6 +433,8 @@ enum /*THEME_STANDARD*/
 #define TES_APPENDMODE          0x00400000
 #define TES_AUTOHSCROLL         0x00800000
 #define TES_DECIMAL             0x01000000
+#define TES_AUTODECIMALCOMMA    0x02000000
+#define TES_UNDERLINE           0x04000000
 
 #define TEM_LIMITTEXT           (TWM_USER  +    1)
 #define TEM_SETPASSWDCHAR       (TWM_USER  +    2)
@@ -510,11 +586,11 @@ enum /*THEME_STANDARD*/
 #define  LCFM_DATA              0x0004
 struct _SUBITEMSTRUCT
 {
-  INT       col;
-  INT       idx;
+  INT       col;      /* column index, zero based */
+  INT       idx;      /* row index, zero based    */
   CHAR*     text;
-  DWORD     attrs;
-  VOID*     data;
+  DWORD     attrs;    /* text attributes          */
+  VOID*     data;     /* user data                */
 };
 typedef struct _SUBITEMSTRUCT SUBITEM;
 
@@ -522,10 +598,10 @@ struct _HEADERITEMSTRUCT
 {
   CHAR*     caption;
   INT       cols;
-  INT       align;
-  DWORD     attrs;
-  DWORD     editstyle;
-  INT       decwidth;
+  INT       align;      /* column alignment         */
+  DWORD     attrs;      /* header text attributes   */
+  DWORD     editstyle;  /* edit style, see TES_XXX  */
+  INT       decwidth;   /* TES_DECIMAL or TES_AUTODECIMALCOMMA, default 6 */
 };
 typedef struct _HEADERITEMSTRUCT HEADERITEM;
 
@@ -586,19 +662,21 @@ do {\
 /*-------------------------------------------------------------------
  * page control
  *-----------------------------------------------------------------*/
+/*
 #define PAGECTRL                   "PAGECTRL"
 
 #define TPCM_ADDPAGE               (TWM_USER  +    1)
 #define TPCM_DELETEPAGE            (TWM_USER  +    2)
-
+*/
 
 /*-------------------------------------------------------------------
  * scroll view
  *-----------------------------------------------------------------*/
+/*
 #define SCROLLVIEW                 "SCROLLVIEW"
 
 #define TSVM_INSERTBAND            (TWM_USER  +    1)
-
+*/
 /*-------------------------------------------------------------------
  * window functions
  *-----------------------------------------------------------------*/
@@ -618,13 +696,25 @@ void TuiShutdown();
  *   Get TUI environment
  */
 TENV TuiGetEnv();
-VOID TuiSetNextMove(LONG nextmove);
-UINT TuiGetDlgMsgID();
+/*
+ * TuiSetNextMove()
+ *   Set next key to move to the next control
+ *   Default TVK_ENTER (ENTER)
+ */
+LONG TuiSetNextMove(LONG nextmove);
+/*
+ * TuiSetPrevMove()
+ *   Set previous key to move to the previous control
+ *   Default KEY_BTAB (Shift + TAB)
+ */
+LONG TuiSetPrevMove(LONG prevmove);
+/*UINT TuiGetDlgMsgID();*/
 DWORD TuiGetSysColor(INT);
 DWORD TuiGetReverseSysColor(INT);
 DWORD TuiReverseColor(DWORD);
 DWORD TuiUnderlineText(DWORD);
 DWORD TuiGetColor(INT);
+LONG  TuiGetChar();
 
 DWORD TuiGetSysColorTheme(INT, INT);
 DWORD TuiGetReverseSysColorTheme(INT, INT);
@@ -640,6 +730,14 @@ LONG TuiTranslateMsg(MSG* msg);
 LONG TuiPostQuitMsg(LONG exitcode);
 LONG TuiSendMsg(TWND, UINT, WPARAM, LPARAM);
 LONG TuiPostMsg(TWND, UINT, WPARAM, LPARAM);
+
+/* frame window */
+#define IDOK           10001
+#define IDYES          10002
+#define IDNO           10003
+#define IDCANCEL       10004
+#define IDINPUTBOX     10005
+LONG TuiDefFrameWndProc(TWND, UINT, WPARAM, LPARAM);
 
 /* window functions */
 TWND TuiCreateWnd(
@@ -658,64 +756,58 @@ TWND TuiCreateWndTempl(
   WNDTEMPL* templs,
   LPVOID    param
 );
-VOID TuiDestroyWnd(TWND);
-TWND TuiGetActiveChildWnd(TWND);
-TWND TuiGetFirstActiveChildWnd(TWND);
-TWND TuiGetLastActiveChildWnd(TWND);
-TWND TuiGetNextActiveChildWnd(TWND);
-TWND TuiGetPrevActiveChildWnd(TWND);
-TWND TuiGetActiveWnd();
-TWND TuiGetFirstWnd();
-TWND TuiGetLastWnd();
-TWND TuiGetNextWnd(TWND wnd);
-TWND TuiGetPrevWnd(TWND wnd);
-LONG TuiInvalidateWnd(TWND);
-LONG TuiShowWnd(TWND, LONG);
-LONG TuiEnableWnd(TWND, LONG);
-LONG TuiIsWndEnabled(TWND);
-LONG TuiIsWndVisible(TWND);
-TWND TuiGetWndItem(TWND, INT);
-LONG TuiGetWndText(TWND, LPSTR, LONG);
-VOID TuiSetWndText(TWND, LPCSTR);
-TWND TuiGetParent(TWND);
-LONG TuiSetFocus(TWND);
-LONG TuiMoveWnd(TWND, INT, INT, INT, INT);
-LONG TuiGetWndRect(TWND, RECT*);
-DWORD TuiGetWndStyle(TWND);
-DWORD TuiSetWndStyle(TWND, DWORD);
-DWORD TuiGetWndTextAttrs(TWND);
-DWORD TuiSetWndTextAttrs(TWND, DWORD);
-UINT TuiGetWndID(TWND);
+TWND TuiCreateFrameWnd(
+  LPCSTR   clsname,
+  LPCSTR   wndname,
+  DWORD    style,
+  INT      y,
+  INT      x,
+  INT      lines,
+  INT      cols,
+  WNDTEMPL* templs,
+  LPVOID    param
+);
+
+VOID   TuiDestroyWnd(TWND);
+TWND   TuiGetActiveChildWnd(TWND);
+TWND   TuiGetFirstActiveChildWnd(TWND);
+TWND   TuiGetLastActiveChildWnd(TWND);
+TWND   TuiGetNextActiveChildWnd(TWND);
+TWND   TuiGetPrevActiveChildWnd(TWND);
+TWND   TuiGetFirstChildWnd(TWND);
+TWND   TuiGetLastChildWnd(TWND);
+TWND   TuiGetActiveWnd();
+TWND   TuiGetFirstWnd();
+TWND   TuiGetLastWnd();
+TWND   TuiGetNextWnd(TWND wnd);
+TWND   TuiGetPrevWnd(TWND wnd);
+LONG   TuiInvalidateWnd(TWND);
+LONG   TuiShowWnd(TWND, LONG);
+LONG   TuiEnableWnd(TWND, LONG);
+LONG   TuiIsWndEnabled(TWND);
+LONG   TuiVisibleWnd(TWND, LONG);
+LONG   TuiIsWndVisible(TWND);
+TWND   TuiGetWndItem(TWND, INT);
+LONG   TuiGetWndText(TWND, LPSTR, LONG);
+VOID   TuiSetWndText(TWND, LPCSTR);
+TWND   TuiGetParent(TWND);
+LONG   TuiSetFocus(TWND);
+TWND   TuiGetFocus(TWND);
+LONG   TuiMoveWnd(TWND, INT, INT, INT, INT);
+LONG   TuiGetWndRect(TWND, RECT*);
+DWORD  TuiGetWndStyle(TWND);
+DWORD  TuiSetWndStyle(TWND, DWORD);
+DWORD  TuiGetWndTextAttrs(TWND);
+DWORD  TuiSetWndTextAttrs(TWND, DWORD);
+UINT   TuiGetWndID(TWND);
 LPVOID TuiGetWndParam(TWND);
 LPVOID TuiSetWndParam(TWND, LPVOID);
 LONG   TuiIsWndValidate(TWND, LPCSTR);
-VOID TuiSetWndValidate(TWND, LONG (*)(TWND, LPCSTR));
+VOID   TuiSetWndValidate(TWND, LONG (*)(TWND, LPCSTR));
 
-#define MB_INVALID           0x00000000
-#define MB_CAPTION           0x00010000
-#define MB_YES               0x00000001
-#define MB_NO                0x00000002
-#define MB_CANCEL            0x00000004
-#define MB_YESNOCANCEL       (MB_YES|MB_NO|MB_CANCEL)
-#define MB_YESNO             (MB_YES|MB_NO)
-
-#define MB_OK                0x00000008
-#define MB_OKCANCEL          (MB_OK|MB_CANCEL)
-
-struct _MSGBOXSTRUCT
-{
-  TWND  owner;
-  VOID* param;
-  VOID  (*OnOK)(TWND, VOID*);
-  VOID  (*OnYes)(TWND, VOID*);
-  VOID  (*OnNo)(TWND, VOID*);
-  VOID  (*OnCancel)(TWND, VOID*);
-};
-typedef struct _MSGBOXSTRUCT MSGBOXPARAM;
-
+/*
 UINT TuiEndDlg(TWND, UINT);
-LONG TuiMsgBox(TWND, LPCSTR, LPCSTR, UINT);
-LONG TuiMsgBoxParam(TWND, LPCSTR, LPCSTR, UINT, MSGBOXPARAM*);
+*/
 /* device context */
 #define DT_LEFT              0x0001
 #define DT_CENTER            0x0002
@@ -731,14 +823,18 @@ struct _TUIDEVICECONTEXSTRUCT
 #endif
 };
 
+LONG TuiPrintTextAlignment(LPSTR out, LPCSTR in, LONG limit, INT align);
+
 TDC  TuiGetDC(TWND);
 LONG TuiDrawText(TDC, INT, INT, LPCSTR, DWORD);
 LONG TuiDrawTextEx(TDC, INT, INT, INT, LPCSTR, LONG, DWORD, INT);
 LONG TuiPutChar(TDC, INT, INT, CHAR, DWORD);
 LONG TuiMoveYX(TDC, INT, INT);
 LONG TuiGetYX(TDC, INT*, INT*);
-LONG TuiPrintTextAlignment(LPSTR out, LPCSTR in, LONG limit, INT align);
 
+LONG TuiDrawBorder(TDC dc, RECT* rcwnd);
+LONG TuiDrawFrame(TDC dc, RECT* rcframe, LPCSTR caption, DWORD attrs);
+LONG TuiDrawMultipleFrames(TDC dc, RECT* rcframe, LPCSTR caption, DWORD attrs, INT* widths);
 /* simple macros */
 #define MIN(a, b)    ((a) < (b) ? (a) : (b))
 #define MAX(a, b)    ((a) > (b) ? (a) : (b))
