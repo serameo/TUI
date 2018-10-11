@@ -358,6 +358,8 @@ struct _RESPONSEMSGBOXSTRUCT
 };
 typedef struct _RESPONSEMSGBOXSTRUCT RESPONSEMSGBOX;
 
+#define TUI_MAX_NMHDR        sizeof(RESPONSEMSGBOX)
+
 #define MB_YES               0x00000001
 #define MB_NO                0x00000002
 #define MB_CANCEL            0x00000004
