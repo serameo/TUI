@@ -1004,8 +1004,20 @@ LONG TuiPostMsg(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       memset(msgq, 0, sizeof(tmsgq_t));
       msgq->wnd = wnd;
       msgq->msg = msg;
+      if (TWM_NOTIFY == msg)
+      {
+        NMHDR* nmhdr = (NMHDR*)malloc(TUI_MAX_NMHDR);
+        memset(nmhdr, 0, TUI_MAX_NMHDR);
+        memcpy(nmhdr, (NMHDR*)lparam, TUI_MAX_NMHDR);
+        
+        msgq->lparam = (LPARAM)nmhdr;
+      }
+      else
+      {
+        msgq->lparam = lparam;
+      }
       msgq->wparam = wparam;
-      msgq->lparam = lparam;
+      
 
       if (env->tailq)
       {
@@ -1365,6 +1377,10 @@ LONG TuiGetMsg(MSG* msg)
       env->headq = env->headq->next;
     }
     msgq->next = 0;
+    if (TWM_NOTIFY == msgq->msg)
+    {
+      free((VOID*)msgq->lparam);
+    }
     free(msgq);
   }
   env->tailq = env->headq = 0; /* set to nil */
