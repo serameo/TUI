@@ -698,12 +698,6 @@ VOID TLCTL_OnBeginMoving(TWND wnd)
     lctl->state = LCS_VIEW;
     return;
   }
-  /* send notification */
-  nmhdr.id   = TuiGetWndID(wnd);
-  nmhdr.ctl  = wnd;
-  nmhdr.code = TLCN_BEGINMOVING;
-
-  TuiSendMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
   
   lctl->state = LCS_MOVINGCURSOR;
   /* move cursor to the current row */
@@ -729,6 +723,12 @@ VOID TLCTL_OnBeginMoving(TWND wnd)
   
   /* save the editing cell */
   lctl->editingcell = cell;
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_BEGINMOVING;
+
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
 }
 
 VOID TLCTL_OnMovingCursor(TWND wnd, LONG ch)
@@ -849,12 +849,6 @@ VOID TLCTL_OnEndMoving(TWND wnd)
     return;
   }
   lctl->state = LCS_ENDMOVING;
-  /* send notification */
-  nmhdr.id   = TuiGetWndID(wnd);
-  nmhdr.ctl  = wnd;
-  nmhdr.code = TLCN_ENDMOVING;
-
-  TuiSendMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
   
   /* redraw the previous moving cursor */
   header = _TLCTL_FindHeaderByIndex(lctl, lctl->curselcol);
@@ -873,6 +867,12 @@ VOID TLCTL_OnEndMoving(TWND wnd)
   lctl->state = LCS_VIEW;
   
   TuiInvalidateWnd(wnd);
+  /* send notification */
+  nmhdr.id   = TuiGetWndID(wnd);
+  nmhdr.ctl  = wnd;
+  nmhdr.code = TLCN_ENDMOVING;
+
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
 }
 
 
@@ -917,15 +917,15 @@ VOID TLCTL_OnBeginEdit(TWND wnd)
   
   TuiSetFocus(lctl->editbox);
   
+  /* update state */
+  lctl->state = LCS_EDITING;
+  
   /* send notification */
   nmhdr.id   = TuiGetWndID(wnd);
   nmhdr.ctl  = wnd;
   nmhdr.code = TLCN_BEGINEDIT;
 
-  TuiSendMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
-  
-  /* update state */
-  lctl->state = LCS_EDITING;
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
 }
 
 
@@ -963,12 +963,12 @@ VOID TLCTL_OnEndEdit(TWND wnd, INT ok)
   nmhdr.code = (ok ? TLCN_ENDEDITOK : TLCN_ENDEDITCANCEL);
   if (ok)
   {
-    rc = TuiSendMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
     if (rc == TUI_OK)
     {
       /* update */
       strcpy(lctl->editingcell->caption, buf);
     }
+    rc = TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
   }
   TuiInvalidateWnd(wnd);
 }

@@ -532,12 +532,7 @@ VOID TLB_OnSetCurSel(TWND wnd, INT idx)
   
   TuiInvalidateWnd(wnd);
   /* send notification */
-/*
-  nmhdr.id   = TuiGetWndID(wnd);
-  nmhdr.ctl  = wnd;
-  nmhdr.code = TLBN_SELCHANGED;
-  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
-*/
+  _TLB_OnSelChanged(wnd);
 
   lb->selitem = _TLB_FindItemByIndex(wnd, lb->cursel);
   lb->firstvisibleitem = _TLB_FindItemByIndex(wnd, lb->firstvisible);

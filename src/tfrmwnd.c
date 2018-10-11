@@ -568,8 +568,8 @@ VOID TFRAMEWND_OnCommand(TWND wnd, UINT cmd)
       {
         res.text[0] = 0;
       }
-      TuiSendMsg(wnd, TWM_NOTIFY, (WPARAM)0, (LPARAM)&res);
       TuiSendMsg(wnd, TWM_SHOWMSGBOX, (WPARAM)TW_HIDE, (LPARAM)0);
+      TuiPostMsg(wnd, TWM_NOTIFY, (WPARAM)0, (LPARAM)&res);
       break;
     }
   }
