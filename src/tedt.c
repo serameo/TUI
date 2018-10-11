@@ -32,6 +32,9 @@ struct _TEDITSTRUCT
 typedef struct _TEDITSTRUCT _TEDIT;
 typedef struct _TEDITSTRUCT *TEDIT;
 
+LONG _TEDT_AddDecimalFormat(TEDIT edit);
+LONG _TEDT_RemoveDecimalFormat(TEDIT edit);
+
 LONG TEDT_OnCreate(TWND wnd);
 VOID TEDT_OnDestroy(TWND wnd);
 VOID TEDT_OnSetFocus(TWND wnd);
@@ -44,8 +47,93 @@ VOID TEDT_OnLimitText(TWND wnd, INT limit);
 VOID TEDT_OnSetPasswdChar(TWND wnd, CHAR passchar);
 VOID TEDT_OnShowPasswdChar(TWND wnd, INT show);
 VOID TEDT_OnSetDecWidth(TWND wnd, INT width);
-LONG EDITPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
+LONG EDITBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
+LONG _TEDT_AddDecimalFormat(TEDIT edit)
+{
+  CHAR buf[TUI_MAX_WNDTEXT+1];
+  INT cnt = 1;
+  CHAR* pbuf;
+  LONG len = strlen(edit->editbuf) - 1;
+  CHAR* psz = &edit->editbuf[len];
+  
+  memset(buf, 0, sizeof(buf));
+  pbuf = buf;
+  
+  while (*psz != 0 && *psz != '.')
+  {
+    *pbuf = *psz;
+    ++pbuf;
+    --psz;
+    --len;
+  }
+  if ('.' == *psz)
+  {
+    *pbuf = *psz;
+    ++pbuf;
+    --psz;
+    --len;
+  }
+  
+  while (len >= 0)
+  {
+    if (cnt % 4 == 0 && *psz != '-')
+    {
+      *pbuf = ',';
+      ++pbuf;
+      ++cnt;
+    }
+    *pbuf = *psz;
+    ++pbuf;
+    --psz;
+    --len;
+    ++cnt;
+  }
+  /* save */
+  memset(edit->editbuf, 0, sizeof(edit->editbuf));
+  /* reverse copy */
+  len  = strlen(buf) - 1;
+  pbuf = &buf[len];
+  psz  = edit->editbuf;
+  while (len >= 0)
+  {
+    *psz = *pbuf;
+    ++psz;
+    --pbuf;
+    --len;
+  }
+  return TUI_OK;
+}
+
+LONG _TEDT_RemoveDecimalFormat(TEDIT edit)
+{
+  CHAR buf[TUI_MAX_WNDTEXT+1];
+  CHAR* psz = edit->editbuf;
+  CHAR* pbuf = buf;
+  
+  if (strchr(edit->editbuf, ','))
+  {
+    memset(buf, 0, sizeof(buf));
+    while (*psz != 0 && *psz != '.')
+    {
+      if (*psz != ',')
+      {
+        *pbuf = *psz;
+        ++pbuf;
+      }
+      ++psz;
+    }
+    while (*psz != 0)
+    {
+      *pbuf = *psz;
+      ++pbuf;
+      ++psz;
+    }
+    /* save */
+    strcpy(edit->editbuf, buf);
+  }
+  return TUI_OK;
+}
 
 LONG TEDT_OnCreate(TWND wnd)
 {
@@ -89,12 +177,18 @@ VOID TEDT_OnSetFocus(TWND wnd)
 {
   TEDIT edit = 0;
   NMHDR nmhdr;
+  DWORD style = TuiGetWndStyle(wnd);
   /* save edited buffer */
   edit = (TEDIT)TuiGetWndParam(wnd);
   TuiGetWndText(wnd, edit->editbuf, TUI_MAX_WNDTEXT);
   edit->firstvisit = 1;
   edit->firstchar  = 0;
   edit->editing    = 0;
+  
+  if (TES_AUTODECIMALCOMMA & style)
+  {
+    _TEDT_RemoveDecimalFormat(edit);
+  }
   
   /* send notification */
   nmhdr.id   = TuiGetWndID(wnd);
@@ -114,22 +208,33 @@ LONG TEDT_OnKillFocus(TWND wnd)
   
   edit = (TEDIT)TuiGetWndParam(wnd);
   
-  rc = TuiIsWndValidate(wnd, buf);
-  if (rc != TUI_CONTINUE)
-  {
-    return rc;
-  }  
   /* check if style is TES_DECIMAL */
-  if (style & TES_DECIMAL)
+  if (TES_DECIMAL & style || TES_AUTODECIMALCOMMA & style)
   {
     decimal = atof(edit->editbuf);
     sprintf(buf, "%.*f", edit->decwidth, decimal);
     strcpy(edit->editbuf, buf);
   }
+  else
+  {
+    strcpy(buf, edit->editbuf);
+  }
+  /* validate */
+  rc = TuiIsWndValidate(wnd, buf);
+  if (rc != TUI_CONTINUE)
+  {
+    return rc;
+  }  
+  
+  if (TES_AUTODECIMALCOMMA & style)
+  {
+    _TEDT_AddDecimalFormat(edit);
+  }
   /* update text */
   edit->firstchar = 0;
   edit->editing   = 0;
   TuiSetWndText(wnd, edit->editbuf);
+  edit->firstvisit = 1;
   
   /* send notification */
   nmhdr.id   = TuiGetWndID(wnd);
@@ -203,7 +308,10 @@ VOID TEDT_OnChar(TWND wnd, LONG ch)
   
   if (TuiIsWndEnabled(wnd))
   {
-    attrs = TuiUnderlineText(attrs);
+    if (style & TES_UNDERLINE)
+    {
+      attrs = TuiUnderlineText(attrs);
+    }
   }
 
   TuiGetWndText(wnd, text, TUI_MAX_WNDTEXT);
@@ -225,6 +333,30 @@ VOID TEDT_OnChar(TWND wnd, LONG ch)
   {
     /* add char */
     len = strlen(edit->editbuf);
+    /* is the first typing? */
+    if (edit->firstvisit == 1)
+    {
+      edit->firstvisit = 0;
+      if (!(TES_APPENDMODE & style) || (TES_PASSWORD & style)) /* replace mode */
+      {
+        edit->editbuf[0] = 0;
+        memset(buf, ' ', rc.cols);
+        buf[rc.cols] = 0;
+        TuiDrawText(dc, rc.y, rc.x, buf, attrs);
+        TuiMoveYX(dc, rc.y, rc.x);
+        
+        len = 0;
+      }
+      else if (TES_AUTOHSCROLL & style)
+      {
+        /* show first char at */
+        if (len > rc.cols)
+        {
+          edit->firstchar = len - rc.cols - 1;
+        }
+      }
+    }
+    
     if (len + 1 <= edit->limitchars)
     {
       if (TES_NUMBER & style)
@@ -236,7 +368,7 @@ VOID TEDT_OnChar(TWND wnd, LONG ch)
           return;
         }
       }
-      else if (TES_DECIMAL & style)
+      else if (TES_DECIMAL & style || TES_AUTODECIMALCOMMA & style)
       {
         /* require only decimal input */
         ret = TEDT_ValidateDecimalStyle(wnd, edit, ch);
@@ -258,26 +390,6 @@ VOID TEDT_OnChar(TWND wnd, LONG ch)
         if (ch >= 'A' && ch <= 'Z')
         {
           ch = ch - 'A' + 'a';
-        }
-      }
-      if (edit->firstvisit == 1)
-      {
-        edit->firstvisit = 0;
-        if (!(TES_APPENDMODE & style) || (TES_PASSWORD & style)) /* replace mode */
-        {
-          edit->editbuf[0] = 0;
-          memset(buf, ' ', rc.cols);
-          buf[rc.cols] = 0;
-          TuiDrawText(dc, rc.y, rc.x, buf, attrs);
-          TuiMoveYX(dc, rc.y, rc.x);
-        }
-        else if (TES_AUTOHSCROLL & style)
-        {
-          /* show first char at */
-          if (len > rc.cols)
-          {
-            edit->firstchar = len - rc.cols - 1;
-          }
         }
       }
       
@@ -350,8 +462,8 @@ VOID TEDT_OnChar(TWND wnd, LONG ch)
       {
         edit->editbuf[0] = 0;
         sprintf(buf, "%*s", rc.cols, " ");
-        TuiMoveYX(dc, rc.y, rc.x);
         TuiDrawText(dc, rc.y, rc.x, buf, attrs);
+        TuiMoveYX(dc, rc.y, rc.x);
       }
       else if (TES_AUTOHSCROLL & style)
       {
@@ -424,7 +536,10 @@ VOID TEDT_OnPaint(TWND wnd, TDC dc)
     
   if (TuiIsWndEnabled(wnd))
   {
-    attrs = TuiUnderlineText(attrs);
+    if (style & TES_UNDERLINE)
+    {
+      attrs = TuiUnderlineText(attrs);
+    }
   }
   
   TuiGetWndRect(wnd, &rc);
@@ -510,13 +625,20 @@ VOID TEDT_OnSetDecWidth(TWND wnd, INT width)
 VOID TEDT_OnSetText(TWND wnd, LPCSTR text)
 {
   TEDIT edit = 0;
+  DWORD style = TuiGetWndStyle(wnd);
   
   edit = (TEDIT)TuiGetWndParam(wnd);
   TuiGetWndText(wnd, edit->editbuf, TUI_MAX_WNDTEXT);
   edit->firstvisit = 1;
+  
+  if (TES_AUTODECIMALCOMMA & style)
+  {
+    _TEDT_RemoveDecimalFormat(edit);
+    _TEDT_AddDecimalFormat(edit);
+  }
 }
 
-LONG EDITPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
+LONG EDITBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   switch (msg)
   {

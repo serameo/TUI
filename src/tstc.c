@@ -21,6 +21,12 @@ VOID TSTC_OnPaint(TWND wnd, TDC dc);
 LONG TSTC_OnCreate(TWND wnd);
 LONG STATICPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
+LONG TSTC_OnCreate(TWND wnd)
+{
+  TuiEnableWnd(wnd, TW_DISABLE);
+  return TUI_CONTINUE;
+}
+
 VOID TSTC_OnPaint(TWND wnd, TDC dc)
 {
   CHAR buf[TUI_MAX_WNDTEXT+1];
@@ -45,6 +51,10 @@ LONG STATICPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
       TSTC_OnPaint(wnd, TuiGetDC(wnd));
       return 0;
+    }
+    case TWM_CREATE:
+    {
+      return TSTC_OnCreate(wnd);
     }
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);

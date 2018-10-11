@@ -144,9 +144,15 @@ LONG TuiDrawFrame(TDC dc, RECT* rcframe, LPCSTR caption, DWORD attrs)
   TuiDrawBorder(dc, rcframe);
   if (caption)
   {
-    TuiPrintTextAlignment(buf, caption, strlen(caption)+2, DT_CENTER);
-    TuiDrawText(dc, rcframe->y, rcframe->x, buf, attrs);
+    TuiPrintTextAlignment(buf, caption, strlen(caption), DT_CENTER);
+    TuiDrawText(dc, rcframe->y,
+      rcframe->x + (rcframe->cols - strlen(caption))/2, buf, attrs);
   }
+  return TUI_OK;
+}
+
+LONG TuiDrawMultipleFrames(TDC dc, RECT* rcframe, LPCSTR caption, DWORD attrs, INT* widths)
+{
   return TUI_OK;
 }
 
@@ -172,3 +178,4 @@ LONG TuiDrawBorder(TDC dc, RECT* rcwnd)
 #endif
   return TUI_OK;
 }
+

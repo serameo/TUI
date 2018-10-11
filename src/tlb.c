@@ -287,6 +287,7 @@ VOID TLB_OnPaint(TWND wnd, TDC dc)
   DRAWITEM di;
   RECT rc;
   DWORD style = TuiGetWndStyle(wnd);
+  INT lines = 0;
   
   if (!TuiIsWndVisible(wnd))
   {
@@ -299,6 +300,17 @@ VOID TLB_OnPaint(TWND wnd, TDC dc)
   {
     item = lb->firstitem;
     TuiGetWndRect(wnd, &rc);
+    lines = rc.lines;
+/*
+    if (style & TWS_BORDER)
+    {
+      lines -= 2;
+      rc.y++;
+      rc.x++;
+      rc.cols--;
+    }
+*/
+
     for (i = 0; i < lb->nitems && item; ++i, item = item->next)
     {
       if (i < lb->firstvisible)
@@ -306,7 +318,7 @@ VOID TLB_OnPaint(TWND wnd, TDC dc)
         /* do nothing */
         continue;
       }
-      else if (i - lb->firstvisible < rc.lines)
+      else if (i - lb->firstvisible < lines)
       {
         if (style & TLBS_OWNERDRAW)
         {
@@ -348,7 +360,6 @@ VOID TLB_OnPaint(TWND wnd, TDC dc)
           /* copy from item text */
           strcat(text, item->itemtext);
           TuiPrintTextAlignment(buf, text, rc.cols, style);
-          
           
           TuiDrawText(dc, 
             rc.y+(i-lb->firstvisible), 

@@ -223,7 +223,7 @@ LONG TLCTL_OnCreate(TWND wnd)
   }
   memset(lctl, 0, sizeof(_TLISTCTRL));
   lctl->hdrids    = 1;
-  lctl->editbox = TuiCreateWnd(EDIT,
+  lctl->editbox = TuiCreateWnd(EDITBOX,
                     "",
                     TWS_CHILD|TES_AUTOHSCROLL,
                     0,    /* y */
