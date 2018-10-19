@@ -42,32 +42,34 @@ struct _TUILISTBOXSTRUCT
 
   INT           checkeditems;    /* count item checked */
   tlistbox_t*   lastitemchecked; /* to identify the last item checked */
+  
+  VOID*         exparam;
 };
 typedef struct _TUILISTBOXSTRUCT _TLISTBOX;
 typedef struct _TUILISTBOXSTRUCT *TLISTBOX;
 
 tlistbox_t* _TLB_FindItemByIndex(TWND wnd, INT idx);
-VOID _TLB_OnSelChanged(TWND wnd);
+VOID __TLB_OnSelChanged(TWND wnd);
 
-INT TLB_OnCountItemCheck(TWND wnd);
-INT TLB_OnGetItemChecked(TWND wnd, INT idx);
-INT TLB_OnSetItemChecked(TWND wnd, INT idx, INT check);
-LPVOID TLB_OnGetItemData(TWND wnd, INT idx);
-VOID TLB_OnSetItemData(TWND wnd, INT idx, LPVOID data);
-VOID TLB_OnSetCurSel(TWND wnd, INT idx);
-LONG TLB_OnGetItemCount(TWND wnd);
-VOID TLB_OnSetItemText(TWND wnd, INT idx, LPSTR text);
-LONG TLB_OnGetItemText(TWND wnd, INT idx, LPSTR text);
-INT TLB_OnGetCurSel(TWND wnd);
-VOID TLB_OnDeleteAllItems(TWND wnd);
-VOID TLB_OnDeleteItem(TWND wnd, LONG idx);
-LONG TLB_OnAddItem(TWND wnd, LPCSTR text);
-VOID TLB_OnPaint(TWND wnd, TDC dc);
-VOID TLB_OnKeyDown(TWND wnd, LONG ch);
-LONG TLB_OnKillFocus(TWND wnd);
-VOID TLB_OnSetFocus(TWND wnd);
-VOID TLB_OnDestroy(TWND wnd);
-LONG TLB_OnCreate(TWND wnd);
+INT _TLB_OnCountItemCheck(TWND wnd);
+INT _TLB_OnGetItemChecked(TWND wnd, INT idx);
+INT _TLB_OnSetItemChecked(TWND wnd, INT idx, INT check);
+LPVOID _TLB_OnGetItemData(TWND wnd, INT idx);
+VOID _TLB_OnSetItemData(TWND wnd, INT idx, LPVOID data);
+VOID _TLB_OnSetCurSel(TWND wnd, INT idx);
+LONG _TLB_OnGetItemCount(TWND wnd);
+VOID _TLB_OnSetItemText(TWND wnd, INT idx, LPSTR text);
+LONG _TLB_OnGetItemText(TWND wnd, INT idx, LPSTR text);
+INT _TLB_OnGetCurSel(TWND wnd);
+VOID _TLB_OnDeleteAllItems(TWND wnd);
+VOID _TLB_OnDeleteItem(TWND wnd, LONG idx);
+LONG _TLB_OnAddItem(TWND wnd, LPCSTR text);
+VOID _TLB_OnPaint(TWND wnd, TDC dc);
+VOID _TLB_OnKeyDown(TWND wnd, LONG ch);
+LONG _TLB_OnKillFocus(TWND wnd);
+VOID _TLB_OnSetFocus(TWND wnd);
+VOID _TLB_OnDestroy(TWND wnd);
+LONG _TLB_OnCreate(TWND wnd);
 LONG LISTBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 
@@ -94,7 +96,7 @@ tlistbox_t* _TLB_FindItemByIndex(TWND wnd, INT idx)
   return 0;
 }
 
-LONG TLB_OnCreate(TWND wnd)
+LONG _TLB_OnCreate(TWND wnd)
 {
   TLISTBOX lb = 0;
   /* initial memory for static control */
@@ -119,7 +121,7 @@ LONG TLB_OnCreate(TWND wnd)
   return TUI_CONTINUE;
 }
 
-VOID TLB_OnDestroy(TWND wnd)
+VOID _TLB_OnDestroy(TWND wnd)
 {
   TLISTBOX lb = 0;
   lb = (TLISTBOX)TuiGetWndParam(wnd);
@@ -130,7 +132,7 @@ VOID TLB_OnDestroy(TWND wnd)
   free(lb);
 }
 
-VOID TLB_OnSetFocus(TWND wnd)
+VOID _TLB_OnSetFocus(TWND wnd)
 {
   TLISTBOX lb = 0;
   NMHDR nmhdr;
@@ -152,7 +154,7 @@ VOID TLB_OnSetFocus(TWND wnd)
   TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
 }
 
-LONG TLB_OnKillFocus(TWND wnd)
+LONG _TLB_OnKillFocus(TWND wnd)
 {
   NMHDR nmhdr;
   LONG rc = TUI_CONTINUE;
@@ -165,7 +167,7 @@ LONG TLB_OnKillFocus(TWND wnd)
   return rc;
 }
 
-VOID _TLB_OnSelChanged(TWND wnd)
+VOID __TLB_OnSelChanged(TWND wnd)
 {
   NMHDR nmhdr;
   /* send notification */
@@ -175,7 +177,7 @@ VOID _TLB_OnSelChanged(TWND wnd)
   TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
 }
 
-VOID TLB_OnKeyDown(TWND wnd, LONG ch)
+VOID _TLB_OnKeyDown(TWND wnd, LONG ch)
 {
   TLISTBOX lb = 0;
   INT repaint = 0;
@@ -270,13 +272,13 @@ VOID TLB_OnKeyDown(TWND wnd, LONG ch)
     
     TuiInvalidateWnd(wnd);
     /* send notification */
-    _TLB_OnSelChanged(wnd);
+    __TLB_OnSelChanged(wnd);
   }
   lb->selitem = _TLB_FindItemByIndex(wnd, lb->cursel);
   lb->firstvisibleitem = _TLB_FindItemByIndex(wnd, lb->firstvisible);
 }
 
-VOID TLB_OnPaint(TWND wnd, TDC dc)
+VOID _TLB_OnPaint(TWND wnd, TDC dc)
 {
   TLISTBOX lb = 0;
   INT i = 0;
@@ -301,15 +303,6 @@ VOID TLB_OnPaint(TWND wnd, TDC dc)
     item = lb->firstitem;
     TuiGetWndRect(wnd, &rc);
     lines = rc.lines;
-/*
-    if (style & TWS_BORDER)
-    {
-      lines -= 2;
-      rc.y++;
-      rc.x++;
-      rc.cols--;
-    }
-*/
 
     for (i = 0; i < lb->nitems && item; ++i, item = item->next)
     {
@@ -365,14 +358,14 @@ VOID TLB_OnPaint(TWND wnd, TDC dc)
             rc.y+(i-lb->firstvisible), 
             rc.x, 
             buf, 
-            (i == lb->cursel ? TuiReverseColor(attrs) : attrs));
+            (i == lb->cursel ? TuiGetReverseSysColor(COLOR_HIGHLIGHT) : attrs));
         }
       }/* not owner draw */
     } /* for each item */
   } /* items are valid */
 }
 
-LONG TLB_OnAddItem(TWND wnd, LPCSTR text)
+LONG _TLB_OnAddItem(TWND wnd, LPCSTR text)
 {
   TLISTBOX lb = 0;
   LONG len = 0;
@@ -407,7 +400,7 @@ LONG TLB_OnAddItem(TWND wnd, LPCSTR text)
   return TUI_MEM;
 }
 
-VOID TLB_OnDeleteItem(TWND wnd, LONG idx)
+VOID _TLB_OnDeleteItem(TWND wnd, LONG idx)
 {
   TLISTBOX lb = 0;
   tlistbox_t* item = 0;
@@ -451,7 +444,7 @@ VOID TLB_OnDeleteItem(TWND wnd, LONG idx)
   }
 }
 
-VOID TLB_OnDeleteAllItems(TWND wnd)
+VOID _TLB_OnDeleteAllItems(TWND wnd)
 {
   TLISTBOX lb = 0;
   INT nitems = 0;
@@ -465,14 +458,14 @@ VOID TLB_OnDeleteAllItems(TWND wnd)
   }
 }
 
-INT TLB_OnGetCurSel(TWND wnd)
+INT _TLB_OnGetCurSel(TWND wnd)
 {
   TLISTBOX lb = 0;
   lb = (TLISTBOX)TuiGetWndParam(wnd);
   return lb->cursel;
 }
 
-LONG TLB_OnGetItemText(TWND wnd, INT idx, LPSTR text)
+LONG _TLB_OnGetItemText(TWND wnd, INT idx, LPSTR text)
 {
   tlistbox_t* item = 0;
   
@@ -485,7 +478,7 @@ LONG TLB_OnGetItemText(TWND wnd, INT idx, LPSTR text)
   return strlen(text);
 }
 
-VOID TLB_OnSetItemText(TWND wnd, INT idx, LPSTR text)
+VOID _TLB_OnSetItemText(TWND wnd, INT idx, LPSTR text)
 {
   tlistbox_t* item = 0;
   
@@ -496,14 +489,14 @@ VOID TLB_OnSetItemText(TWND wnd, INT idx, LPSTR text)
   }
 }
 
-LONG TLB_OnGetItemCount(TWND wnd)
+LONG _TLB_OnGetItemCount(TWND wnd)
 {
   TLISTBOX lb = 0;
   lb = (TLISTBOX)TuiGetWndParam(wnd);
   return lb->nitems;
 }
 
-VOID TLB_OnSetCurSel(TWND wnd, INT idx)
+VOID _TLB_OnSetCurSel(TWND wnd, INT idx)
 {
   TLISTBOX lb = 0;
   RECT rc;
@@ -532,13 +525,13 @@ VOID TLB_OnSetCurSel(TWND wnd, INT idx)
   
   TuiInvalidateWnd(wnd);
   /* send notification */
-  _TLB_OnSelChanged(wnd);
+  __TLB_OnSelChanged(wnd);
 
   lb->selitem = _TLB_FindItemByIndex(wnd, lb->cursel);
   lb->firstvisibleitem = _TLB_FindItemByIndex(wnd, lb->firstvisible);
 }
 
-VOID TLB_OnSetItemData(TWND wnd, INT idx, LPVOID data)
+VOID _TLB_OnSetItemData(TWND wnd, INT idx, LPVOID data)
 {
   tlistbox_t* item = 0;
   
@@ -549,7 +542,7 @@ VOID TLB_OnSetItemData(TWND wnd, INT idx, LPVOID data)
   }
 }
 
-LPVOID TLB_OnGetItemData(TWND wnd, INT idx)
+LPVOID _TLB_OnGetItemData(TWND wnd, INT idx)
 {
   tlistbox_t* item = 0;
   
@@ -561,7 +554,7 @@ LPVOID TLB_OnGetItemData(TWND wnd, INT idx)
   return 0;
 }
 
-INT TLB_OnSetItemChecked(TWND wnd, INT idx, INT check)
+INT _TLB_OnSetItemChecked(TWND wnd, INT idx, INT check)
 {
   tlistbox_t* item = 0;
   TLISTBOX lb = 0;
@@ -621,7 +614,7 @@ INT TLB_OnSetItemChecked(TWND wnd, INT idx, INT check)
   return LB_ERROR;
 }
 
-INT TLB_OnGetItemChecked(TWND wnd, INT idx)
+INT _TLB_OnGetItemChecked(TWND wnd, INT idx)
 {
   tlistbox_t* item = 0;
   
@@ -633,7 +626,7 @@ INT TLB_OnGetItemChecked(TWND wnd, INT idx)
   return LB_ERROR;
 }
 
-INT TLB_OnCountItemCheck(TWND wnd)
+INT _TLB_OnCountItemCheck(TWND wnd)
 {
   TLISTBOX lb = 0;
   
@@ -647,88 +640,88 @@ LONG LISTBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   {
     case TLBM_COUNTITEMCHECKED:
     {
-      return TLB_OnCountItemCheck(wnd);
+      return _TLB_OnCountItemCheck(wnd);
     }
     case TLBM_GETITEMCHECKED:
     {
-      return TLB_OnGetItemChecked(wnd, (INT)wparam);
+      return _TLB_OnGetItemChecked(wnd, (INT)wparam);
     }
     case TLBM_SETITEMCHECKED:
     {
-      return TLB_OnSetItemChecked(wnd, (INT)wparam, (INT)lparam);
+      return _TLB_OnSetItemChecked(wnd, (INT)wparam, (INT)lparam);
     }
     case TWM_CREATE:
     {
-      return TLB_OnCreate(wnd);
+      return _TLB_OnCreate(wnd);
     }
     case TWM_DESTROY:
     {
-      TLB_OnDestroy(wnd);
+      _TLB_OnDestroy(wnd);
       return 0;
     }
     case TWM_SETFOCUS:
     {
-      TLB_OnSetFocus(wnd);
+      _TLB_OnSetFocus(wnd);
       break;
     }
     case TWM_KILLFOCUS:
     {
-      return TLB_OnKillFocus(wnd);
+      return _TLB_OnKillFocus(wnd);
     }
     case TWM_KEYDOWN:
     {
-      TLB_OnKeyDown(wnd, (LONG)wparam);
+      _TLB_OnKeyDown(wnd, (LONG)wparam);
       break;
     }
     case TWM_PAINT:
     {
-      TLB_OnPaint(wnd, TuiGetDC(wnd));
+      _TLB_OnPaint(wnd, TuiGetDC(wnd));
       return 0;
     }
     case TLBM_ADDITEM:
     {
-      return TLB_OnAddItem(wnd, (LPCSTR)lparam);
+      return _TLB_OnAddItem(wnd, (LPCSTR)lparam);
     }
     case TLBM_DELETEITEM:
     {
-      TLB_OnDeleteItem(wnd, (LONG)wparam);
+      _TLB_OnDeleteItem(wnd, (LONG)wparam);
       return 0;
     }
     case TLBM_GETCURSEL:
     {
-      return TLB_OnGetCurSel(wnd);
+      return _TLB_OnGetCurSel(wnd);
     }
     case TLBM_SETCURSEL:
     {
-      TLB_OnSetCurSel(wnd, (INT)wparam);
+      _TLB_OnSetCurSel(wnd, (INT)wparam);
       return 0;
     }
     case TLBM_DELETEALLITEMS:
     {
-      TLB_OnDeleteAllItems(wnd);
+      _TLB_OnDeleteAllItems(wnd);
       return 0;
     }
     case TLBM_GETITEMCOUNT:
     {
-      return TLB_OnGetItemCount(wnd);
+      return _TLB_OnGetItemCount(wnd);
     }
     case TLBM_SETITEMDATA:
     {
-      TLB_OnSetItemData(wnd, (INT)wparam, (LPVOID)lparam);
+      _TLB_OnSetItemData(wnd, (INT)wparam, (LPVOID)lparam);
       return 0;
     }
     case TLBM_GETITEMDATA:
     {
-      return (LONG)TLB_OnGetItemData(wnd, (INT)wparam);
+      return (LONG)_TLB_OnGetItemData(wnd, (INT)wparam);
     }
     case TLBM_SETITEMTEXT:
     {
-      TLB_OnSetItemText(wnd, (INT)wparam, (LPSTR)lparam);
+      _TLB_OnSetItemText(wnd, (INT)wparam, (LPSTR)lparam);
       return 0;
     }
     case TLBM_GETITEMTEXT:
     {
-      return TLB_OnGetItemText(wnd, (INT)wparam, (LPSTR)lparam);
+      return _TLB_OnGetItemText(wnd, (INT)wparam, (LPSTR)lparam);
     }
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);

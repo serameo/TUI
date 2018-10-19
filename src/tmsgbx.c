@@ -292,3 +292,8 @@ LONG TuiMsgBox(TWND parent, LPCSTR caption, LPCSTR text, UINT flags)
   return rc; 
 }
 
+LONG TuiLineInputBox(TWND parent, LPCSTR caption, RECT* rcwnd)
+{
+  return MB_OK;
+}
+

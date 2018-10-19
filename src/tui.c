@@ -9,6 +9,15 @@
 #ifdef __USE_CURSES__
 #include <curses.h>
 #elif (defined __USE_QIO__ && defined __VMS__)
+#include <descrip.h>
+#include <iodef.h>
+#include <lib$routines.h>
+#include <ssdef.h>
+#include <starlet.h>
+#include <stdio.h>
+#include <string.h>
+#include <stsdef.h>
+
 #include <qio_init.h>
 #endif
 
@@ -47,6 +56,22 @@ struct _TUITHEMESTRUCT
 };
 typedef struct _TUITHEMESTRUCT ttheme_t;
 
+#ifdef __USE_QIO__
+/* I/O status block */
+/*
+struct _TIOSBSTRUCT
+{
+  UINT16 iostat;
+  UINT16 ttiolen;
+  UINT32 dev_info;
+};
+typedef struct _TIOSBSTRUCT TIOSB;
+*/
+TIOSB  ttiosb;
+UINT16 ttchan;
+_TQIO  ttqio;
+#endif
+
 struct _TUIENVSTRUCT
 {
   /* doubly linked-list */
@@ -71,45 +96,45 @@ struct _TUIENVSTRUCT
   
   _TDC             dc;
   /* last dialog returned message */
-  /*UINT             dlgmsgid;*/
   INT              themeid;
   ttheme_t         themes[THEME_LAST];
 };
 
 struct _TUIWINDOWSTRUCT
 {
-  LPCSTR           clsname;
-  CHAR             wndname[TUI_MAX_WNDTEXT+1];
-  DWORD            style;
-  DWORD            exstyle;
-  INT              x;
-  INT              y;
-  INT              cols;
-  INT              lines;
-  TWND             parent;
-  UINT             id;
-  LPVOID           param;
-  TWNDPROC         wndproc;
-  LONG             enable;
-  LONG             visible;
-  LONG             (*validate)(TWND, LPCSTR);
+  LPCSTR            clsname;
+  CHAR              wndname[TUI_MAX_WNDTEXT+1];
+  DWORD             style;
+  DWORD             exstyle;
+  INT               x;
+  INT               y;
+  INT               cols;
+  INT               lines;
+  TWND              parent;
+  UINT              id;
+  LPVOID            param;
+  TWNDPROC          wndproc;
+  LONG              enable;
+  LONG              visible;
+  VALIDATEPROC      validateproc;
+  CHAR              infotext[TUI_MAX_WNDTEXT+1];
   /* curses lib */
 #ifdef __USE_CURSES__
-  WINDOW*            win;
+  WINDOW*           win;
 #elif defined __USE_QIO__
   /* QIO for VMS implement here */
-  struct qio_fields* win;
+  TQIO              win;
 #endif
-  DWORD            attrs;
+  DWORD             attrs;
   /* last dialog returned message */
   /*UINT             dlgmsgid;*/
   
   /* links */
-  TWND             prevwnd;
-  TWND             nextwnd;
-  TWND             firstchild;
-  TWND             lastchild;
-  TWND             activechild;
+  TWND              prevwnd;
+  TWND              nextwnd;
+  TWND              firstchild;
+  TWND              lastchild;
+  TWND              activechild;
 };
 
 /*-------------------------------------------------------------------
@@ -126,6 +151,7 @@ tthemeitem_t STANDARD_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -140,6 +166,7 @@ tthemeitem_t LHS_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -154,6 +181,7 @@ tthemeitem_t ASP_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -168,6 +196,7 @@ tthemeitem_t CNS_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -182,6 +211,7 @@ tthemeitem_t KTZ_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -196,6 +226,7 @@ tthemeitem_t YUANTA_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -210,6 +241,7 @@ tthemeitem_t KSS_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -224,6 +256,7 @@ tthemeitem_t PST_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -238,6 +271,7 @@ tthemeitem_t MBKET_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -252,6 +286,7 @@ tthemeitem_t AIRA_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -266,6 +301,7 @@ tthemeitem_t ASL_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -280,6 +316,7 @@ tthemeitem_t MERCHANT_THEME[] =
   { CYAN_BLACK  }, /* COLOR_EDTTEXT     */
   { YELLOW_BLUE }, /* COLOR_LBXTEXT     */
   { WHITE_BLUE  }, /* COLOR_WNDTITLE    */
+  { YELLOW_BLUE }, /* COLOR_HIGHLIGHT   */
   /* last color */
   { 0 }  
 };
@@ -304,6 +341,20 @@ TWND _TuiCreateWnd(
   UINT     id,
   LPVOID   param
 );
+TWND _TuiCreateWndEx(
+  LPCSTR   clsname,
+  LPCSTR   wndname,
+  DWORD    style,
+  DWORD    exstyle,
+  INT      y,
+  INT      x,
+  INT      lines,
+  INT      cols,
+  TWND     parent,
+  UINT     id,
+  LPCSTR   infotext,
+  LPVOID   param
+);
 VOID _TuiDestroyWnd(TWND wnd);
 LONG _TuiInvalidateWnd(TWND wnd);
 LONG _TuiDequeMsg();
@@ -317,30 +368,10 @@ LONG EDITBOXPROC(TWND, UINT, WPARAM, LPARAM);
 LONG LISTBOXPROC(TWND, UINT, WPARAM, LPARAM);
 LONG BUTTONPROC(TWND, UINT, WPARAM, LPARAM);
 LONG LISTCTRLPROC(TWND, UINT, WPARAM, LPARAM);
-LONG PAGECTRLPROC(TWND, UINT, WPARAM, LPARAM);
-/*
-LONG MSGBOXPROC(TWND, UINT, WPARAM, LPARAM);
-*/
+LONG LISTPAGECTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 /*-------------------------------------------------------------------
  * functions
  *-----------------------------------------------------------------*/
- #ifdef __USE_QIO__
-int printf(const char *format, ...);
-int sprintf(char *str, const char *format, ...);
-
-LONG QIO_Initialize();
-VOID QIO_Get();
-VOID QIO_Put();
-
-VOID DoUpdate() /* required by QIO */
-{
-    return;
-}
-VOID CheckTerm() /* required by QIO */
-{
-    return;
-}
-#endif /*__USE_QIO__*/
 
 
 INT   TuiGetTheme()
@@ -442,6 +473,10 @@ VOID _TuiInitColors()
 
 LONG TuiStartup()
 {
+#ifdef __USE_QIO__ 
+  UINT32 status;
+  $DESCRIPTOR(ttname,"SYS$INPUT");
+#endif
   TENV env = (TENV)malloc(sizeof(_TENV));
   if (env)
   {
@@ -454,8 +489,7 @@ LONG TuiStartup()
     TuiRegisterCls(LISTBOX,  LISTBOXPROC);
     TuiRegisterCls(BUTTON,   BUTTONPROC);
     TuiRegisterCls(LISTCTRL, LISTCTRLPROC);
-    /*TuiRegisterCls(PAGECTRL, PAGECTRLPROC);*/
-    /*TuiRegisterCls(MSGBOX,   MSGBOXPROC);*/
+    TuiRegisterCls(LISTPAGECTRL, LISTPAGECTRLPROC);
 
     env->themeid = THEME_STANDARD;
     /* device context */
@@ -474,13 +508,23 @@ LONG TuiStartup()
     env->notifykey = TVK_ENTER;
     
 #elif defined __USE_QIO__
-  /* QIO for VMS implement here */
-    if (!QIO_Initialize())
+    /* QIO for VMS implement here */
+    /* Assign a channel */
+    status = SYS$ASSIGN(
+                &ttname,      /* devnam - device number */
+                &ttchan,      /* chan - channel number  */
+                0, 0, 0);
+    if (!$VMS_STATUS_SUCCESS(status))
     {
-        free(env);
-        genvptr = 0;
+      LIB$SIGNAL( status );
+      free(env);
+      genvptr = 0;
     }
-    env->dc.win = &qio_field;
+    else
+    {
+      ttqio.ttchan = ttchan;
+      env->dc.win  = &ttqio;
+    }
 #endif
   }
     
@@ -494,6 +538,9 @@ VOID TuiShutdown()
 {
   TWND wnd = genvptr->firstwnd;
   TWND temp = 0;
+#ifdef __USE_QIO__ 
+  UINT32 status;
+#endif
   
   while (wnd)
   {
@@ -510,6 +557,10 @@ VOID TuiShutdown()
   endwin();
 #elif defined __USE_QIO__
   /* QIO for VMS implement here */
+  /* Deassign the channel */
+  status = SYS$DASSGN( ttchan ); /* chan - channel */
+  if (!$VMS_STATUS_SUCCESS( status ))
+          LIB$SIGNAL( status );
 #endif
 }
 
@@ -548,13 +599,7 @@ LONG TuiSetNextMove(LONG nextmove)
   env->nextmove = nextmove;
   return oldmove;
 }
-/*
-UINT TuiGetDlgMsgID()
-{
-  TENV env = genvptr;
-  return env->dlgmsgid;
-}
-*/
+
 TDC TuiGetDC(TWND wnd)
 {
   static _TDC dc;
@@ -618,16 +663,18 @@ LONG TuiMoveWnd(TWND wnd, INT y, INT x, INT lines, INT cols)
   return rc;
 }
 
-TWND _TuiCreateWnd(
+TWND _TuiCreateWndEx(
   LPCSTR   clsname,
   LPCSTR   wndname,
   DWORD    style,
+  DWORD    exstyle,
   INT      y,
   INT      x,
   INT      lines,
   INT      cols,
   TWND     parent,
-  UINT      id,
+  UINT     id,
+  LPCSTR   infotext,
   LPVOID   param
 )
 {
@@ -673,13 +720,28 @@ TWND _TuiCreateWnd(
       wnd->wndproc = proc->wndproc;
       wnd->enable  = (style & TWS_DISABLED ? 0 : 1);
       wnd->visible = (style & TWS_VISIBLE ? 1 : 0);
-      wnd->validate = 0;
+      wnd->validateproc = 0;
+      wnd->exstyle = exstyle;
+      /* info text */
+      len = strlen(infotext);
+      if (infotext && len > 0)
+      {
+        if (len > TUI_MAX_WNDTEXT)
+        {
+          strncpy(wnd->infotext, infotext, TUI_MAX_WNDTEXT);
+        }
+        else
+        {
+          strcpy(wnd->infotext, infotext);
+        }
+      }
+      
       /* curses */
 #ifdef __USE_CURSES__
       wnd->win     = stdscr;
 #elif defined __USE_QIO__
   /* QIO for VMS implement here */
-      wnd->win     = &qio_field;
+      wnd->win     = &ttqio;
 #endif
       wnd->attrs   = 0;
 
@@ -732,8 +794,6 @@ TWND _TuiCreateWnd(
         wnd->cols    = (cols  > parent->cols  ? parent->cols  : cols);
         if (TuiGetWndStyle(parent) & TWS_BORDER)
         {
-          /*wnd->y++;*/
-          /*wnd->x++;*/
           wnd->lines--;
           wnd->cols--;
         }
@@ -744,6 +804,211 @@ TWND _TuiCreateWnd(
     }
   }
   return wnd;
+}
+
+TWND _TuiCreateWnd(
+  LPCSTR   clsname,
+  LPCSTR   wndname,
+  DWORD    style,
+  INT      y,
+  INT      x,
+  INT      lines,
+  INT      cols,
+  TWND     parent,
+  UINT     id,
+  LPVOID   param
+)
+{
+  TENV env = genvptr;
+  TWND wnd = 0;
+  LONG len = 0;
+  twndproc_t* proc = _TuiFindWndProc(clsname);
+
+  if ((style & TWS_WINDOW) &&
+      (style & TWS_CHILD))
+  {
+    /* not allow creating both styles at a time */
+    return wnd;
+  }
+  else if (style & TWS_CHILD && !parent)
+  {
+    /* not allow child without parent */
+    return wnd;
+  }
+
+  if (proc)
+  {
+    wnd = (TWND)malloc(sizeof(_TWND));
+    if (wnd)
+    {
+      memset(wnd, 0, sizeof(_TWND));
+      wnd->clsname = clsname;
+      len = strlen(wndname);
+      if (wndname && len > 0)
+      {
+        if (len > TUI_MAX_WNDTEXT)
+        {
+          strncpy(wnd->wndname, wndname, TUI_MAX_WNDTEXT);
+        }
+        else
+        {
+          strcpy(wnd->wndname, wndname);
+        }
+      }
+      wnd->style   = style;
+      wnd->parent  = parent;
+      wnd->id      = id;
+      wnd->wndproc = proc->wndproc;
+      wnd->enable  = (style & TWS_DISABLED ? 0 : 1);
+      wnd->visible = (style & TWS_VISIBLE ? 1 : 0);
+      wnd->validateproc = 0;
+      /* curses */
+#ifdef __USE_CURSES__
+      wnd->win     = stdscr;
+#elif defined __USE_QIO__
+  /* QIO for VMS implement here */
+      wnd->win     = &ttqio;
+#endif
+      wnd->attrs   = 0;
+
+      /* make link */
+      if (style & TWS_WINDOW)
+      {
+        if (env->firstwnd)
+        {
+          wnd->prevwnd = env->lastwnd;
+          env->lastwnd->nextwnd = wnd;
+          env->lastwnd = wnd;
+        }
+        else
+        {
+          env->firstwnd = env->lastwnd = wnd;
+        }
+        env->activewnd = wnd;
+        /*env->dlgmsgid  = MB_INVALID;*/
+#ifdef __USE_CURSES__
+        wnd->y       = (y > 0 && y < LINES ? y : 0);
+        wnd->x       = (x > 0 && x < COLS  ? x : 0);
+        wnd->lines   = (lines > 0 && lines < LINES ? lines : LINES);
+        wnd->cols    = (cols  > 0 && cols  < COLS  ? cols  : COLS);
+#elif defined __USE_QIO__
+  /* QIO for VMS implement here */
+        wnd->y       = y;
+        wnd->x       = x;
+        wnd->lines   = lines;
+        wnd->cols    = cols;
+#endif
+        
+      }
+      else if (style & TWS_CHILD)
+      {
+        if (parent->firstchild)
+        {
+          wnd->prevwnd = parent->lastchild;
+          parent->lastchild->nextwnd = wnd;
+          parent->lastchild = wnd;
+        }
+        else
+        {
+          parent->firstchild = parent->lastchild = wnd;
+          parent->activechild = wnd;
+        }
+        /* re-size window rectangle */
+        wnd->y       = (parent->y + y);
+        wnd->x       = (parent->x + x);
+        wnd->lines   = (lines > parent->lines ? parent->lines : lines);
+        wnd->cols    = (cols  > parent->cols  ? parent->cols  : cols);
+        if (TuiGetWndStyle(parent) & TWS_BORDER)
+        {
+          wnd->lines--;
+          wnd->cols--;
+        }
+        /* send message */
+        TuiSendMsg(wnd, TWM_ERASEBK, (WPARAM)TuiGetDC(wnd), 0);
+        TuiSendMsg(wnd, TWM_CREATE, 0, 0);
+      }
+    }
+  }
+  return wnd;
+}
+
+LONG TuiFrameWndCreatePage(
+  TWND      wnd,
+  WNDTEMPL* templs,
+  LPVOID    param
+)
+{
+  LONG rc = TUI_CONTINUE;
+  INT i;
+  TWND child = 0;
+  TWND firstchild = 0;
+  TWND lastchild  = 0;
+  DWORD style = 0;
+  _TINITPAGE page;
+  
+  if (wnd && templs)
+  {
+    for (i = 0; templs[i].clsname; ++i)
+    {
+      style  = templs[i].style;
+      style &= ~TWS_WINDOW; /* others must be child */
+      style |= TWS_CHILD;   /* others must be child */
+      child  = _TuiCreateWnd(
+                   templs[i].clsname,
+                   templs[i].text,
+                   style,
+                   templs[i].y,
+                   templs[i].x,
+                   templs[i].lines,
+                   templs[i].cols,
+                   wnd,
+                   templs[i].id,
+                   0
+                 );
+      if (child)
+      {
+        TuiSetWndValidateProc(child, (VALIDATEPROC)templs[i].validateproc);
+        if (!firstchild)
+        {
+          firstchild = child;
+        }
+        lastchild = child;
+      }
+      else
+      {
+        rc = TUI_ERROR;
+        break;
+      }
+    } /* create children */
+
+    if (rc != TUI_ERROR)
+    {
+      page.firstchild = firstchild;
+      page.lastchild  = lastchild;
+      
+      rc = TuiSendMsg(wnd, TWM_INITPAGE, (WPARAM)&page, (LPARAM)param);
+      if (rc != TUI_CONTINUE)
+      {
+        rc = TUI_ERROR;
+      }
+    }
+    /* if errors found */
+    if (TUI_ERROR == rc)
+    {
+      /* delete children created successfully */
+      while (lastchild && lastchild != firstchild)
+      {
+        child = lastchild;
+        _TuiDestroyWnd(child);
+        lastchild = lastchild->prevwnd;
+      }
+      if (firstchild)
+      {
+        _TuiDestroyWnd(firstchild);
+      }
+    }
+  } /* templs is allocated */
+  return rc;
 }
 
 TWND TuiCreateFrameWnd(
@@ -762,7 +1027,8 @@ TWND TuiCreateFrameWnd(
   TWND wnd = 0;
   TWND child = 0;
   INT i = 0;
-
+  DWORD childstyle = 0;
+  
   wnd = TuiCreateWnd(
           clsname,
           wndname,
@@ -778,13 +1044,13 @@ TWND TuiCreateFrameWnd(
   {
     for (i = 0; templs[i].clsname; ++i)
     {
-      style  = templs[i].style;
-      style &= ~TWS_WINDOW; /* others must be child */
-      style |= TWS_CHILD;   /* others must be child */
+      childstyle  = templs[i].style;
+      childstyle &= ~TWS_WINDOW; /* others must be child */
+      childstyle |= TWS_CHILD;   /* others must be child */
       child  = _TuiCreateWnd(
                    templs[i].clsname,
                    templs[i].text,
-                   templs[i].style,
+                   childstyle,
                    templs[i].y,
                    templs[i].x,
                    templs[i].lines,
@@ -800,7 +1066,7 @@ TWND TuiCreateFrameWnd(
       }
       else
       {
-        TuiSetWndValidate(child, (LONG (*)(TWND, LPCSTR))templs[i].validate);
+        TuiSetWndValidateProc(child, (VALIDATEPROC)templs[i].validateproc);
       }
     } /* create children */
 
@@ -821,6 +1087,226 @@ TWND TuiCreateFrameWnd(
       }
     }
   } /* templs is allocated */
+  return wnd;
+}
+
+
+LONG TuiFrameWndCreatePageEx(
+  TWND      wnd,
+  FRMWNDTEMPL* templs,
+  LPVOID    param
+)
+{
+  LONG rc = TUI_CONTINUE;
+  INT i;
+  TWND child = 0;
+  TWND firstchild = 0;
+  TWND lastchild  = 0;
+  DWORD style = 0;
+  _TINITPAGE page;
+  
+  if (wnd && templs)
+  {
+    for (i = 0; templs[i].clsname; ++i)
+    {
+      style  = templs[i].style;
+      style &= ~TWS_WINDOW; /* others must be child */
+      style |= TWS_CHILD;   /* others must be child */
+      child  = _TuiCreateWndEx(
+                   templs[i].clsname,
+                   templs[i].text,
+                   style,
+                   templs[i].exstyle,
+                   templs[i].y,
+                   templs[i].x,
+                   templs[i].lines,
+                   templs[i].cols,
+                   wnd,
+                   templs[i].id,
+                   templs[i].infotext,
+                   0
+                 );
+      if (child)
+      {
+        TuiSetWndValidateProc(child, (VALIDATEPROC)templs[i].validateproc);
+        if (!firstchild)
+        {
+          firstchild = child;
+        }
+        lastchild = child;
+      }
+      else
+      {
+        rc = TUI_ERROR;
+        break;
+      }
+    } /* create children */
+
+    if (rc != TUI_ERROR)
+    {
+      page.firstchild = firstchild;
+      page.lastchild  = lastchild;
+      
+      rc = TuiSendMsg(wnd, TWM_INITPAGE, (WPARAM)&page, (LPARAM)param);
+      if (rc != TUI_CONTINUE)
+      {
+        rc = TUI_ERROR;
+      }
+    }
+    /* if errors found */
+    if (TUI_ERROR == rc)
+    {
+      /* delete children created successfully */
+      while (lastchild && lastchild != firstchild)
+      {
+        child = lastchild;
+        _TuiDestroyWnd(child);
+        lastchild = lastchild->prevwnd;
+      }
+      if (firstchild)
+      {
+        _TuiDestroyWnd(firstchild);
+      }
+    }
+  } /* templs is allocated */
+  return rc;
+}
+
+TWND TuiCreateFrameWndEx(
+  LPCSTR   clsname,
+  LPCSTR   wndname,
+  DWORD    style,
+  DWORD    exstyle,
+  INT      y,
+  INT      x,
+  INT      lines,
+  INT      cols,
+  FRMWNDTEMPL* templs,
+  LPVOID    param
+)
+{
+  LONG rc  = TUI_CONTINUE;
+  TWND wnd = 0;
+  TWND child = 0;
+  INT i = 0;
+  DWORD childstyle = 0;
+  
+  wnd = TuiCreateWndEx(
+          clsname,
+          wndname,
+          style,
+          exstyle,
+          y,
+          x,
+          lines,
+          cols,
+          0,
+          0,
+          "",
+          param);
+  if (wnd && templs)
+  {
+    for (i = 0; templs[i].clsname; ++i)
+    {
+      childstyle  = templs[i].style;
+      childstyle &= ~TWS_WINDOW; /* others must be child */
+      childstyle |= TWS_CHILD;   /* others must be child */
+      child  = _TuiCreateWndEx(
+                   templs[i].clsname,
+                   templs[i].text,
+                   childstyle,
+                   templs[i].exstyle,
+                   templs[i].y,
+                   templs[i].x,
+                   templs[i].lines,
+                   templs[i].cols,
+                   wnd,
+                   templs[i].id,
+                   templs[i].infotext,
+                   0
+                 );
+      if (!child)
+      {
+        _TuiDestroyWnd(wnd);
+        wnd = 0;
+      }
+      else
+      {
+        TuiSetWndValidateProc(child, (VALIDATEPROC)templs[i].validateproc);
+      }
+    } /* create children */
+
+    if (wnd)
+    {
+      TuiSendMsg(wnd, TWM_ERASEBK, (WPARAM)TuiGetDC(wnd), 0);
+      rc = TuiSendMsg(wnd, TWM_INITDIALOG, (WPARAM)0, (LPARAM)param);
+      if (rc != TUI_CONTINUE)
+      {
+        _TuiDestroyWnd(wnd);
+        wnd = 0;
+      }
+      child = TuiGetFirstActiveChildWnd(wnd);
+      if (child)
+      {
+        wnd->activechild = child;
+        TuiSetFocus(child);
+      }
+    }
+  } /* templs is allocated */
+  return wnd;
+}
+
+
+TWND TuiCreateWndEx(
+  LPCSTR    clsname,
+  LPCSTR    wndname,
+  DWORD     style,
+  DWORD     exstyle,
+  INT       y,
+  INT       x,
+  INT       lines,
+  INT       cols,
+  TWND      parent,
+  INT       id,
+  LPCSTR    infotext,
+  LPVOID    param
+)
+{
+  LONG rc  = TUI_CONTINUE;
+  TWND child = 0;
+  TWND wnd = _TuiCreateWndEx(
+                clsname,
+                wndname,
+                style,
+                exstyle,
+                y,
+                x,
+                lines,
+                cols,
+                parent,
+                id,
+                infotext,
+                param
+             );
+  if (wnd)
+  {
+    TuiSendMsg(wnd, TWM_ERASEBK, (WPARAM)TuiGetDC(wnd), 0);
+    rc = TuiSendMsg(wnd, TWM_CREATE, 0, (LPARAM)param);
+    if (rc != TUI_CONTINUE)
+    {
+      if (wnd)
+      {
+        _TuiDestroyWnd(wnd);
+      }
+      wnd = 0;
+    }
+    child = TuiGetFirstActiveChildWnd(wnd);
+    if (child)
+    {
+      wnd->activechild = child;
+      TuiSetFocus(child);
+    }
+  }
   return wnd;
 }
 
@@ -911,7 +1397,7 @@ TWND TuiCreateWndTempl(
         child  = _TuiCreateWnd(
                    templs[i].clsname,
                    templs[i].text,
-                   templs[i].style,
+                   style,
                    templs[i].y,
                    templs[i].x,
                    templs[i].lines,
@@ -927,7 +1413,7 @@ TWND TuiCreateWndTempl(
         }
         else
         {
-          child->validate = (LONG (*)(TWND, LPCSTR))templs[i].validate;
+          TuiSetWndValidateProc(child, (VALIDATEPROC)templs[i].validateproc);
         }
       } /* create children */
     } /* wnd is created successfully */
@@ -981,7 +1467,6 @@ void TuiDestroyWnd(TWND wnd)
     env->activewnd = env->lastwnd;
   }
   /* save the last message id */
-  /*env->dlgmsgid = wnd->dlgmsgid;*/
   
   TuiSendMsg(wnd, TWM_DESTROY, 0, 0);
   _TuiDestroyWnd(wnd);
@@ -1018,7 +1503,6 @@ LONG TuiPostMsg(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       }
       msgq->wparam = wparam;
       
-
       if (env->tailq)
       {
         env->tailq->next = msgq;
@@ -1081,14 +1565,7 @@ LONG TuiShowWnd(TWND wnd, LONG show)
 LONG TuiEnableWnd(TWND wnd, LONG enable)
 {
   wnd->enable = enable;
-  /*return _TuiInvalidateWnd(wnd);*/
   return TUI_OK;
-}
-
-LONG   TuiVisibleWnd(TWND wnd, LONG visible)
-{
-  wnd->visible = visible;
-  return _TuiInvalidateWnd(wnd);
 }
 
 TWND TuiGetFirstActiveChildWnd(TWND wnd)
@@ -1278,17 +1755,33 @@ LPVOID TuiSetWndParam(TWND wnd, LPVOID newparam)
 LONG   TuiIsWndValidate(TWND wnd, LPCSTR text)
 {
   LONG rc = TUI_CONTINUE;
-  if (wnd->validate)
+  if (wnd->validateproc)
   {
-    rc = wnd->validate(wnd, text);
+    rc = wnd->validateproc(wnd, text);
   }
   return rc;
 }
 
-VOID
-TuiSetWndValidate(TWND wnd, LONG (*validate)(TWND, LPCSTR))
+VALIDATEPROC TuiSetWndValidateProc(TWND wnd, VALIDATEPROC validateproc)
 {
-  wnd->validate = validate;
+  VALIDATEPROC oldproc = wnd->validateproc;
+  wnd->validateproc = validateproc;
+  return oldproc;
+}
+
+LONG   TuiGetWndInfoText(TWND wnd, LPSTR text, LONG cb)
+{
+  TuiSendMsg(wnd, TWM_GETINFOTEXT, cb, (LPARAM)text);
+  return strlen(text);
+}
+
+VOID   TuiSetWndInfoText(TWND wnd, LPCSTR text)
+{
+  if (text && wnd)
+  {
+    TuiSendMsg(wnd, TWM_SETINFOTEXT, 0, (LPARAM)text);
+    TuiInvalidateWnd(wnd);
+  }
 }
 
 LONG TuiGetWndText(TWND wnd, LPSTR text, LONG cb)
@@ -1318,38 +1811,28 @@ TWND TuiGetParent(TWND wnd)
 /*-------------------------------------------------------------------
  * MSG functions
  *-----------------------------------------------------------------*/
-#ifdef __USE_QIO__
-VOID QIO_GetCh()
-{         
-  QIO_InitParameter();
-  while(1)
-  {
-    QIO_GetKeyTerminal();
-    switch(bProcess)
-    {
-      case ENDERR:
-        printf("Program abort...\n");
-        exit(0);
-      case BEGPROC:
-        QIO_InitParameter();
-        break;
-      case ENDSUCC:
-        CheckProcessInput();
-        if(CheckValue()== TRUE)
-        {
-          memset(qio_field.szDefault,0,SIZE_TEXT);
-          return;
-        }
-    }
-  }
-
-}
-#endif
 
 LONG  TuiGetChar()
 {
-#ifdef __USE_CURSES__
+#if defined __USE_CURSES__
   return (LONG)wgetch(stdscr);
+#elif defined __USE_QIO__
+/* Request I/O */
+  CHAR buffer[2] = { 0, 0 };
+  INT inlen = 1;
+  UINT32 status;
+    
+  status = SYS$QIOW(0,                    /* efn - event flag         */
+                  ttchan,                 /* chan - channel number    */
+                  IO$_READVBLK | IO$M_NOECHO | IO$_TTYREADALL,
+                                          /* func - function modifier */
+                  &ttiosb,                /* iosb - I/O status block  */
+                  0,                      /* astadr - AST routine     */
+                  0,                      /* astprm - AST parameter   */
+                  buffer,                 /* p1 - buffer              */
+                  inlen,                  /* p2 - length of buffer    */
+                  0, 0, 0, 0);
+  return (LONG)buffer[0];
 #endif
   return 0;
 }
@@ -1492,7 +1975,7 @@ LONG TuiDispatchMsg(MSG* msg)
 {
   TENV env = genvptr;
   TWND wnd = env->activewnd;
-  TWND child = wnd->activechild;
+  TWND child = (wnd ? wnd->activechild : 0);
 
   if (env->quitcode)
   {
@@ -1530,9 +2013,11 @@ LONG TuiTranslateMsg(MSG* msg)
   TWND nextwnd = 0;
   TWND prevwnd = 0;
   TWND parent = 0;
+  TWND grandparent = 0;
   LONG nextmove = env->nextmove;
   LONG prevmove = env->prevmove;
   TWND nextchild = 0;
+  RECT rcwnd;
 
   if (env->quitcode)
   {
@@ -1578,6 +2063,9 @@ LONG TuiTranslateMsg(MSG* msg)
     
     if (rc != TUI_CONTINUE)
     {
+      /* move cursor */
+      TuiGetWndRect(msg->wnd, &rcwnd);
+      TuiMoveYX(TuiGetDC(msg->wnd), rcwnd.y, rcwnd.x);
       return rc;
     }
 
@@ -1585,29 +2073,30 @@ LONG TuiTranslateMsg(MSG* msg)
     prevwnd = msg->wnd;
     if (parent)
     {
-      if (nextchild)
+      if (msg->wnd == TuiGetLastActiveChildWnd(parent))
       {
-        msg->wnd = nextchild;
-        parent->activechild = nextchild;
-      }
-      else
-      {
-        if (msg->wnd == TuiGetLastActiveChildWnd(parent))
+        grandparent = TuiGetParent(parent);
+        if (grandparent)
         {
-          msg->wnd = TuiGetFirstActiveChildWnd(parent);
+          msg->wnd = TuiGetNextActiveChildWnd(grandparent);
         }
         else
         {
-          msg->wnd = nextwnd;
+          msg->wnd = TuiGetFirstActiveChildWnd(parent);
         }
-        parent->activechild = msg->wnd;
       }
+      else
+      {
+        msg->wnd = nextwnd;
+      }
+      parent->activechild = msg->wnd;
     }
     else
     {
-      msg->wnd = TuiGetNextActiveChildWnd(env->activewnd);
+      msg->wnd = TuiGetPrevActiveChildWnd(env->activewnd);
       env->activewnd->activechild = msg->wnd;
     }
+        
     if (msg->wnd)
     {
       rc = TuiPostMsg(msg->wnd, TWM_SETFOCUS, 0, (LPARAM)prevwnd);
@@ -1632,7 +2121,15 @@ LONG TuiTranslateMsg(MSG* msg)
     {
       if (msg->wnd == TuiGetFirstActiveChildWnd(parent))
       {
-        msg->wnd = TuiGetLastActiveChildWnd(parent);
+        grandparent = TuiGetParent(parent);
+        if (grandparent)
+        {
+          msg->wnd = TuiGetPrevActiveChildWnd(grandparent);
+        }
+        else
+        {
+          msg->wnd = TuiGetLastActiveChildWnd(parent);
+        }
       }
       else
       {
@@ -1651,6 +2148,10 @@ LONG TuiTranslateMsg(MSG* msg)
       TuiMoveYX(TuiGetDC(msg->wnd), msg->wnd->y, msg->wnd->x);
     }
     return 0;    
+  }
+  else
+  {
+    /* otherwise key */
   }
 
   /* parent window */
@@ -1693,7 +2194,10 @@ LONG TuiSetFocus(TWND wnd)
   LONG rc = TUI_CONTINUE;
 
   /* kill focus at the current control */
-  rc = TuiSendMsg(activewnd, TWM_KILLFOCUS, 0, (LPARAM)wnd);
+  if (activewnd)
+  {
+    rc = TuiSendMsg(activewnd, TWM_KILLFOCUS, 0, (LPARAM)wnd);
+  }
   if (rc != TUI_CONTINUE)
   {
     return rc;
@@ -1703,7 +2207,10 @@ LONG TuiSetFocus(TWND wnd)
     rc = TuiSendMsg(wnd, TWM_SETFOCUS, 0, (LPARAM)activewnd);
     TuiMoveYX(TuiGetDC(wnd), wnd->y, wnd->x);  
 
-    parent->activechild = wnd;
+    if (parent)
+    {
+      parent->activechild = wnd;
+    }
   }
   return rc;
 }
@@ -1754,12 +2261,15 @@ LONG TuiPrintTextAlignment(LPSTR out, LPCSTR in, LONG limit, INT align)
 /*-------------------------------------------------------------------
  * DefWndProc functions
  *-----------------------------------------------------------------*/
-LONG _TuiDefWndProc_OnEraseBk(TWND wnd, TDC dc);
-VOID _TuiDefWndProc_OnSetText(TWND wnd, LPCSTR text);
-LONG _TuiDefWndProc_OnGetText(TWND wnd, LPSTR text, LONG cb);
-VOID _TuiDefWndProc_OnSetTextAlign(TWND wnd, INT align);
+LONG  _TuiDefWndProc_OnEraseBk(TWND wnd, TDC dc);
+VOID  _TuiDefWndProc_OnSetText(TWND wnd, LPCSTR text);
+LONG  _TuiDefWndProc_OnGetText(TWND wnd, LPSTR text, LONG cb);
+VOID  _TuiDefWndProc_OnSetTextAlign(TWND wnd, INT align);
 DWORD _TuiDefWndProc_OnSetTextAttrs(TWND wnd, DWORD attrs);
 DWORD _TuiDefWndProc_OnGetTextAttrs(TWND wnd);
+VOID  _TuiDefWndProc_OnSetFocus(TWND wnd);
+VOID  _TuiDefWndProc_OnSetInfoText(TWND wnd, LPCSTR text);
+LONG  _TuiDefWndProc_OnGetInfoText(TWND wnd, LPSTR text, LONG cb);
 
 LONG _TuiDefWndProc_OnEraseBk(TWND wnd, TDC dc)
 {
@@ -1777,20 +2287,6 @@ LONG _TuiDefWndProc_OnEraseBk(TWND wnd, TDC dc)
     {
       TuiDrawText(dc, rc.y + i, rc.x, buf, attrs);
     }
-/*
-    if (style & TWS_BORDER)
-    {
-      if (style & TWS_WINDOW)
-      {
-        TuiGetWndText(wnd, buf, TUI_MAX_WNDTEXT);
-        TuiDrawFrame(dc, &rc, buf, TuiReverseColor(attrs));
-      }
-      else
-      {
-        TuiDrawBorder(dc, &rc);
-      }
-    }
-*/
   }
   return TUI_OK;
 }
@@ -1829,6 +2325,40 @@ LONG _TuiDefWndProc_OnGetText(TWND wnd, LPSTR text, LONG cb)
   return strlen(text);
 }
 
+VOID _TuiDefWndProc_OnSetInfoText(TWND wnd, LPCSTR text)
+{
+  LONG len = 0;
+  if (text)
+  {
+    len = strlen(text);
+    if (len > TUI_MAX_WNDTEXT)
+    {
+      strncpy(wnd->infotext, text, TUI_MAX_WNDTEXT);
+    }
+    else
+    {
+      strcpy(wnd->infotext, text);
+    }
+  }
+}
+
+LONG _TuiDefWndProc_OnGetInfoText(TWND wnd, LPSTR text, LONG cb)
+{
+  LONG len = strlen(wnd->infotext);
+  if (cb < 0 || !text)
+  {
+    return len;
+  }
+  
+  if (cb > len + 1)
+  {
+    cb = len + 1;
+  }
+  memset(text, 0, cb);
+  strncpy(text, wnd->infotext, cb);
+  return strlen(text);
+}
+
 VOID _TuiDefWndProc_OnSetTextAlign(TWND wnd, INT align)
 {
   wnd->style &= ~(TWS_LEFT | TWS_CENTER | TWS_RIGHT);
@@ -1859,6 +2389,21 @@ DWORD _TuiDefWndProc_OnGetTextAttrs(TWND wnd)
   return wnd->attrs;
 }
 
+VOID _TuiDefWndProc_OnSetFocus(TWND wnd)
+{
+  DISPLAYINFO di;
+  di.hdr.id    = TuiGetWndID(wnd);
+  di.hdr.ctl   = wnd;
+  di.hdr.code  = TCN_DISPLAYINFO;
+  strcpy(di.text, " ");
+
+  if (strlen(wnd->infotext) > 0)
+  {
+    strcpy(di.text, wnd->infotext);
+  }
+  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&di);
+}
+
 LONG TuiDefWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   switch (msg)
@@ -1867,9 +2412,23 @@ LONG TuiDefWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     case TWM_KILLFOCUS:
       return TUI_CONTINUE;
       
+    case TWM_SETFOCUS:
+      _TuiDefWndProc_OnSetFocus(wnd);
+      break;
+      
     case TWM_ERASEBK:
     {
       return _TuiDefWndProc_OnEraseBk(wnd, (TDC)wparam);
+    }
+    
+    case TWM_SETINFOTEXT:
+    {
+      _TuiDefWndProc_OnSetInfoText(wnd, (LPCSTR)lparam);
+      return 0;
+    }    
+    case TWM_GETINFOTEXT:
+    {
+      return _TuiDefWndProc_OnGetInfoText(wnd, (LPSTR)lparam, (LONG)wparam);
     }
     
     case TWM_SETTEXT:
@@ -1896,15 +2455,7 @@ LONG TuiDefWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   }
   return TUI_OK;
 }
-/*
-UINT TuiEndDlg(TWND wnd, UINT id)
-{
-  wnd->dlgmsgid = id;
-  TuiPostMsg(TuiGetParent(wnd), TWM_DLGMSGID, (WPARAM)id, 0);
-  TuiDestroyWnd(wnd);
-  return id;
-}
-*/
+
 DWORD TuiGetColor(INT idx)
 {
 #ifdef __USE_CURSES__

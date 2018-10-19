@@ -9,6 +9,15 @@
 #ifdef __USE_CURSES__
 #include <curses.h>
 #elif (defined __USE_QIO__ && defined __VMS__)
+#include <descrip.h>
+#include <iodef.h>
+#include <lib$routines.h>
+#include <ssdef.h>
+#include <starlet.h>
+#include <stdio.h>
+#include <string.h>
+#include <stsdef.h>
+
 #include <qio_init.h>
 #endif
 
@@ -17,6 +26,9 @@
 /*-------------------------------------------------------------------
  * DC functions
  *-----------------------------------------------------------------*/
+/*
+ https://en.wikipedia.org/wiki/ANSI_escape_code
+*/
 
 LONG TuiPutChar(
   TDC dc,
@@ -25,7 +37,7 @@ LONG TuiPutChar(
   CHAR   ch,
   DWORD  attrs)
 {
-#ifdef __USE_CURSES__
+#if defined __USE_CURSES__
   /* set attributes on */
   attron(attrs);
   /* print now */
@@ -34,43 +46,32 @@ LONG TuiPutChar(
   attroff(attrs);
 #elif defined __USE_QIO__
   /* QIO for VMS implement here */
-  dc->win->lType = QIO_ANY;
-  dc->win->cColor = 'W';
-  dc->win->lLength = 1;
-  dc->win->lRow = y;
-  dc->win->lColumn = x;
-  strcpy( dc->win->szHelp, "");
-  sprintf(dc->win->szText, "%c", ch);
-  QIO_Put();
+  CHAR prompt[TUI_MAX_WNDTEXT+1];
+  INT outlen = 1;
+  CHAR buffer[2] = { ch, 0 };
+  LONG len;
+  UINT32 status;
+  
+  sprintf(prompt, "[%d;%dH", y, x);
+  len = strlen(prompt);
+  
+  status = SYS$QIOW(0, 
+              dc->win->ttchan,
+              IO$_WRITEVBLK | IO$M_NOFORMAT,
+              &dc->win->ttiosb,
+              0, 0,
+              buffer,
+              outlen,
+              0,
+              0,
+              prompt,
+              len);
+  if (!$VMS_STATUS_SUCCESS( status ))
+  {
+    LIB$SIGNAL( status );
+  }
 #endif
   return TUI_OK;
-}
-
-LONG TuiDrawTextEx(TDC dc, INT y, INT x, INT cols, LPCSTR text, LONG len, DWORD attrs, INT align)
-{
-  if (DT_CENTER == align)
-  {
-    if (len)
-    {
-      return TuiDrawText(dc, y, x + (cols - len) / 2, text, attrs);
-    }
-    else
-    {
-      return TuiDrawText(dc, y, x, text, attrs);
-    }
-  }
-  else if (DT_RIGHT == align)
-  {
-    if (len < cols)
-    {
-      return TuiDrawText(dc, y, x + cols - len, text, attrs);
-    }
-    else
-    {
-      return TuiDrawText(dc, y, x, text, attrs);
-    }
-  }
-  return TuiDrawText(dc, y, x, text, attrs);
 }
 
 LONG TuiDrawText(
@@ -80,7 +81,7 @@ LONG TuiDrawText(
   LPCSTR text,
   DWORD  attrs)
 {
-#ifdef __USE_CURSES__
+#if defined __USE_CURSES__
   if (y >= LINES)
   {
     y = LINES - 1;
@@ -97,26 +98,62 @@ LONG TuiDrawText(
   attroff(attrs);
 #elif defined __USE_QIO__
   /* QIO for VMS implement here */
-  dc->win->lType = QIO_ANY;/*QIO_INTEGER | QIO_UPPERCASE;*/
-  dc->win->cColor = 'W';
-  dc->win->lLength = strlen(text);
-  dc->win->lRow = y;
-  dc->win->lColumn = x;
-  strcpy(dc->win->szHelp, "");
-  strcpy(dc->win->szText, text);
-  QIO_Put();
+  CHAR prompt[TUI_MAX_WNDTEXT+1];
+  INT outlen = strlen(text);
+  CHAR buffer[2] = { 0, 0 };
+  LONG len;
+  UINT32 status;
+  
+  sprintf(prompt, "[%d;%dH", y, x);
+  len = strlen(prompt);
+  
+  status = SYS$QIOW(0, 
+              dc->win->ttchan,
+              IO$_WRITEVBLK | IO$M_NOFORMAT,
+              &dc->win->ttiosb,
+              0, 0,
+              text,
+              outlen,
+              0,
+              0,
+              prompt,
+              len);
+  if (!$VMS_STATUS_SUCCESS( status ))
+  {
+    LIB$SIGNAL( status );
+  }
 #endif
   return TUI_OK;
 }
 
 LONG TuiMoveYX(TDC dc, INT y, INT x)
 {
-#ifdef __USE_CURSES__
+#if defined __USE_CURSES__
   wmove(dc->win, y, x);
 #elif defined __USE_QIO__
   /* QIO for VMS implement here */
-  dc->win->lRow    = y;
-  dc->win->lColumn = x;
+  CHAR prompt[TUI_MAX_WNDTEXT+1];
+  LONG len;
+  UINT32 status;
+  
+  sprintf(prompt, "[%d;%dH", y, x);
+  len = strlen(prompt);
+  
+  status = SYS$QIOW(0, 
+              dc->win->ttchan,
+              IO$_WRITEVBLK| IO$M_NOFORMAT,
+              &dc->win->ttiosb,
+              0, 0,
+              0,
+              0,
+              0,
+              0,
+              prompt,
+              len);
+  if (!$VMS_STATUS_SUCCESS( status ))
+  {
+    LIB$SIGNAL( status );
+  }
 #endif
   return TUI_OK;
 }
@@ -125,12 +162,10 @@ LONG TuiMoveYX(TDC dc, INT y, INT x)
 LONG TuiGetYX(TDC dc, INT* y, INT* x)
 {
   int xx = 0, yy = 0;
-#ifdef __USE_CURSES__
+#if defined __USE_CURSES__
   getyx(dc->win, yy, xx);
 #elif defined __USE_QIO__
   /* QIO for VMS implement here */
-  yy = dc->win->lRow;
-  xx = dc->win->lColumn;
 #endif
   *y = yy;
   *x = xx;
@@ -158,7 +193,7 @@ LONG TuiDrawMultipleFrames(TDC dc, RECT* rcframe, LPCSTR caption, DWORD attrs, I
 
 LONG TuiDrawBorder(TDC dc, RECT* rcwnd)
 {
-#ifdef __USE_CURSES__
+#if defined __USE_CURSES__
   /* left vertical line */
   mvwvline(dc->win, rcwnd->y, rcwnd->x, ACS_VLINE, rcwnd->lines);
   /* right vertical line */
@@ -175,6 +210,43 @@ LONG TuiDrawBorder(TDC dc, RECT* rcwnd)
   mvwaddch(dc->win, rcwnd->y + rcwnd->lines, rcwnd->x, ACS_LLCORNER);
   /* lower right */
   mvwaddch(dc->win, rcwnd->y + rcwnd->lines, rcwnd->x + rcwnd->cols, ACS_LRCORNER);
+#elif defined __USE_QIO__
+#endif
+  return TUI_OK;
+}
+
+LONG TuiDrawBorderEx(TDC dc, RECT* rcwnd, DWORD attrs)
+{
+#if defined __USE_CURSES__
+  attron(attrs);
+#endif
+  TuiDrawBorder(dc, rcwnd);
+#if defined __USE_CURSES__
+  attroff(attrs);
+#endif
+  return TUI_OK;
+}
+
+LONG TuiDrawHLine(TDC dc, INT y, INT x, INT nchars, DWORD attrs)
+{
+#if defined __USE_CURSES__
+  attron(attrs);
+  /* horizontal line */
+  mvwhline(dc->win, y, x, ACS_HLINE, nchars);
+  attroff(attrs);
+#elif defined __USE_QIO__
+#endif
+  return TUI_OK;
+}
+
+LONG TuiDrawVLine(TDC dc, INT y, INT x, INT nchars, DWORD attrs)
+{
+#if defined __USE_CURSES__
+  attron(attrs);
+  /* vertical line */
+  mvwvline(dc->win, y, x, ACS_VLINE, nchars);
+  attroff(attrs);
+#elif defined __USE_QIO__
 #endif
   return TUI_OK;
 }

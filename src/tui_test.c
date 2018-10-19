@@ -24,59 +24,77 @@
 #define IDC_MSG          214
 #define IDC_PRICE        215
 #define IDC_EDITCELL     216
-
-WNDTEMPL dlg1[] =
-{
-  /* 1st object is always dialog */
-  { "mywndproc", "Dialog1", 1,  0,  0, 25, 80, TWS_WINDOW|TWS_BORDER, 0 },
-  /* 2nd and others are controls */
-  { STATIC, "Name:",    100,  1,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
-  { EDIT,   "12345678901234567890",       IDC_NAME,  1, 18,  1, 16, 
-    TWS_CHILD|TWS_VISIBLE|
-      TES_LEFT|TES_APPENDMODE|TES_UPPERCASE|TES_AUTOHSCROLL, 0 },
-  { STATIC, "ID:",    101,  2,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
-  { EDIT,   "DT66234",     201,  2, 18,  1, 16, 
-    TWS_CHILD|TWS_VISIBLE|
-      TES_CENTER|TES_AUTOHSCROLL, 0 },
-  { STATIC, "Tel:",    102,  3,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
-  { EDIT,   "1234",   202,  3, 18,  1, 16, 
-    TWS_CHILD|TWS_VISIBLE|
-      TES_NUMBER|TES_RIGHT|TES_AUTOHSCROLL, 0 },
-  { STATIC, "Email:",    103,  4,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
-  { EDIT,   "abc@abc.com", 203,  4, 18,  1, 16, 
-    TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|
-      TES_AUTOHSCROLL, 0 },
-  { STATIC, "Password:",    104,  5,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
-  { EDIT,   "welcome1!", IDC_PASSWORD,  5, 18,  1, 16, 
-    TWS_CHILD|TWS_VISIBLE|
-      TES_LEFT|TES_PASSWORD|TES_AUTOHSCROLL, 0 },
-  { STATIC, "Price:",    105,  6,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
-  { EDIT,   "399.50", IDC_PRICE,  6, 18,  1, 16, 
-    TWS_CHILD|TWS_VISIBLE|
-      TES_RIGHT|TES_DECIMAL|TES_AUTOHSCROLL, 0 },
-  { LISTBOX,"",               IDC_LISTBOX1,  8,  1,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_CENTER|TWS_BORDER, 0 },
-  { LISTBOX,"",               IDC_LISTBOX2,  8, 21,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_CHECKBOX|TWS_BORDER, 0 },
-  { LISTBOX,"",               IDC_LISTBOX3,  8, 41,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_RADIOBOX|TLBS_RIGHT|TWS_BORDER, 0 },
-  { BUTTON, "Dlg2",    IDC_OPENDLG2,  14,  1,  1,   10, TWS_CHILD|TWS_VISIBLE|TWS_DISABLED, 0 },
-  { BUTTON, "Dlg3",    IDC_OPENDLG3,  14,  21,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
-  { BUTTON, "Close",    IDC_CLOSE,    14,  41,  1,  11, TWS_CHILD|TWS_VISIBLE, 0 },
-  { STATIC, "Esc to exit: ", IDC_STATUSBAR, 24,  0,  1, 80, TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|TSS_LEFT, 0 },
-  /* the last is the end-of-controls */
-  { 0, 0, 0, 0, 0, 0, 0, 0 }
-};
+#define IDC_OPENDLG4     217
 
 WNDTEMPL dlg3[] =
 {
   /* 1st object is always dialog */
   { "mylistctlproc", "Dialog3", 2,  0,  0, 25, 80, TWS_WINDOW, 0 },
   /* 2nd and others are controls */
-  { LISTCTRL, "",    IDC_LISTBOX1,  1,  1,  16,  79, TWS_CHILD|TWS_VISIBLE|TLCS_EDITABLE/*|TLCS_NOHEADER*/, 0 },
+  { LISTCTRL, "",    IDC_LISTBOX1,  1,  1,  16,  79, 
+    TWS_CHILD|TWS_VISIBLE|
+      TLCS_EDITABLE|TLCS_LINEEDIT/*|TLCS_NOSELECTION|TLCS_NOHEADER*/, 0 },
   { BUTTON, "Edit",    IDC_EDITCELL,  20,  1,  1,  14, TWS_CHILD|TWS_VISIBLE, 0 },
   { BUTTON, "Message",    IDC_MSG,  20,  20,  1,  15, TWS_CHILD|TWS_VISIBLE, 0 },
   { BUTTON, "Close",    IDC_CLOSE,  20,  40,  1,  15, TWS_CHILD|TWS_VISIBLE, 0 },
+  /* the last is the end-of-controls */
+  { 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+
+FRMWNDTEMPL dlg4[] =
+{
+  /* 1st object is always dialog */
+  /*{ "mylistpagectlproc", "Dialog4", 2,  0,  0, 25, 80, TWS_WINDOW, 0 },*/
+  /* 2nd and others are controls */
+  { LISTPAGECTRL, "",    IDC_LISTBOX1,  1,  1,  11,  79, 
+    TWS_CHILD|TWS_VISIBLE, 0, 0, "list page control" },
+  { BUTTON, "Close",    IDC_CLOSE,  20,  40,  1,  15, TWS_CHILD|TWS_VISIBLE, 0, 0, "Close" },
+  { STATIC, "",    IDC_STATUSBAR,  24,  0,  1,  80, TWS_CHILD|TWS_VISIBLE, 0, 0, "" },
+  /* the last is the end-of-controls */
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+WNDTEMPL frame1[] =
+{
+  /* 1st object is always dialog */
+  { "mywndproc", "Dialog1", 1,  0,  0, 25, 80, TWS_WINDOW|TWS_BORDER, 0 },
+  /* 2nd and others are controls */
+  { STATIC, "Name:",    100,  1,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "12345678901234567890",       IDC_NAME,  1, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_LEFT|TES_UPPERCASE|TES_AUTOHSCROLL, 0 },
+  { STATIC, "ID:",    101,  2,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "DT66234",     201,  2, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_CENTER|TES_AUTOHSCROLL, 0 },
+  { STATIC, "Tel:",    102,  3,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "1234",   202,  3, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_NUMBER|TES_RIGHT|TES_AUTOHSCROLL, 0 },
+  { STATIC, "Email:",    103,  4,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "abc@abc.com", 203,  4, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|
+      TES_AUTOHSCROLL, 0 },
+  { STATIC, "Password:",    104,  5,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "welcome1!", IDC_PASSWORD,  5, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_LEFT|TES_PASSWORD|TES_AUTOHSCROLL, 0 },
+  { STATIC, "Price:",    105,  6,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "132,399.50", IDC_PRICE,  6, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_RIGHT|TES_AUTODECIMALCOMMA|TES_AUTOHSCROLL, 0 },
+  { LISTBOX,"",               IDC_LISTBOX1,  8,  1,  5, 16, 
+    TWS_CHILD|TWS_VISIBLE|TLBS_CENTER|TWS_BORDER, 0 },
+  { LISTBOX,"",               IDC_LISTBOX2,  8, 21,  5, 16, 
+    TWS_CHILD|TWS_VISIBLE|TLBS_CHECKBOX|TWS_BORDER, 0 },
+  { LISTBOX,"",               IDC_LISTBOX3,  8, 41,  5, 16, 
+    TWS_CHILD|TWS_VISIBLE|TLBS_RADIOBOX|TLBS_RIGHT|TWS_BORDER, 0 },
+  { BUTTON, "Dlg2",    IDC_OPENDLG2,  14,  1,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
+  { BUTTON, "Dlg3",    IDC_OPENDLG3,  14,  11,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
+  { BUTTON, "Dlg4",    IDC_OPENDLG4,  14,  21,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
+  { BUTTON, "Close",    IDC_CLOSE,    14,  31,  1,  11, TWS_CHILD|TWS_VISIBLE, 0 },
+  { STATIC, "Esc to exit: ", IDC_STATUSBAR, 24,  1,  1, 79, TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|TSS_LEFT, 0 },
   /* the last is the end-of-controls */
   { 0, 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -98,6 +116,15 @@ VOID mywndproc_onselchanged(TWND wnd, TWND ctl)
   }
 }
 
+VOID mywndproc_onmbxcommand(TWND wnd, UINT cmd, UINT id)
+{
+  TWND statusbar = 0;
+  CHAR buf[TUI_MAX_WNDTEXT+1];
+  
+  statusbar = TuiGetWndItem(wnd, IDC_STATUSBAR);
+  sprintf(buf, "cmd = %d, id = %d", cmd, id);
+  TuiSetWndText(statusbar, buf);
+}
 LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   CHAR buf[TUI_MAX_WNDTEXT+1];
@@ -148,7 +175,7 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
      /* 
       edit = TuiGetWndItem(wnd, IDC_PASSWORD);
       TEDT_ShowPasswdChar(edit, TW_HIDE);*/
-      return TUI_CONTINUE;
+      return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
     }
 
     case TWM_NOTIFY:
@@ -161,9 +188,24 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
           mywndproc_onselchanged(wnd, nmhdr->ctl);
           break;
         }
+        case (TWM_USER+1):
+        {
+          /*RESPONSEMSGBOX* res = (RESPONSEMSGBOX*)lparam;*/
+          mywndproc_onmbxcommand(wnd, nmhdr->id, nmhdr->code);
+          break;
+        }
       }
+      
       break;
     }
+    /*
+    case TWM_MBXCOMMAND:
+    {
+      RESPONSEMSGBOX* res = (RESPONSEMSGBOX*)lparam;
+      mywndproc_onmbxcommand(wnd, res->cmd, res->id);
+      break;
+    }*/
+    
     case TWM_COMMAND:
     {
       sprintf(buf, "Pressed: %s", (IDC_OK == wparam ? "OK" : "Cancel"));
@@ -172,10 +214,27 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 
       if (wparam == IDC_OPENDLG2)
       {
+        TuiShowMsgBox(wnd,
+          TWM_USER+1,
+          "Hello World",
+          "Welcome to the real world",
+          MB_YESNOCANCEL,
+          TW_SHOW);
       }
       else if (wparam == IDC_OPENDLG3)
       {
         TWND dlg = TuiCreateWndTempl(dlg3, 0);
+        TuiShowWnd(dlg, 1);        
+      }
+      else if (wparam == IDC_OPENDLG4)
+      {/*{ "mylistpagectlproc", "Dialog4", 2,  0,  0, 25, 80, TWS_WINDOW, 0 },*/
+        TWND dlg = TuiCreateFrameWndEx(
+                      "mylistpagectlproc",
+                      "Dialog4",
+                      TWS_WINDOW|TWS_VISIBLE,
+                      0,
+                      0, 0, 25, 80,
+                      dlg4, 0);
         TuiShowWnd(dlg, 1);        
       }
       else if (wparam == IDC_CLOSE)
@@ -186,15 +245,144 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       break;
     }
   }
-  return TuiDefWndProc(wnd, msg, wparam, lparam);
+  return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
 }
 
+VOID mylistctlproc_onnotify(TWND wnd, RESPONSEMSGBOX* res)
+{
+
+}
+
+VOID mylistctlproc_onnotify2(TWND wnd, RESPONSEMSGBOX* res)
+{
+
+}
+
+LONG mylistpagectlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+  TWND list = 0;
+  NMHDR* nmhdr = 0;
+
+  switch (msg)
+  {
+    case TWM_INITDIALOG:
+    {
+      list = TuiGetWndItem(wnd, IDC_LISTBOX1);
+      
+      TLPC_AddItem(list, "Item #10\t""\t \t\t");
+      TLPC_AddItem(list, "Item #10\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #10\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #10\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #10\t""\t \t\t");
+      TLPC_AddItem(list, "Item #10\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #10\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #10\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #10\t""\t \t\t");
+      TLPC_AddItem(list, "Item #10\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #20\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #20\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #20\t""\t \t\t");
+      TLPC_AddItem(list, "Item #20\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #20\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #20\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #20\t""\t \t\t");
+      TLPC_AddItem(list, "Item #20\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #20\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #20\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #30\t""\t \t\t");
+      TLPC_AddItem(list, "Item #30\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #30\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #30\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #30\t""\t \t\t");
+      TLPC_AddItem(list, "Item #30\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #30\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #30\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #30\t""\t \t\t");
+      TLPC_AddItem(list, "Item #30\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #40\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #40\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #40\t""\t \t\t");
+      TLPC_AddItem(list, "Item #40\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #40\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #40\t""\t \tMins\t");
+      TLPC_AddItem(list, "Item #40\t""\t \t\t");
+      TLPC_AddItem(list, "Item #40\t""\t \tK Baht\t");
+      TLPC_AddItem(list, "Item #40\t""\t \t%%\t");
+      TLPC_AddItem(list, "Item #40\t""\t \tMins\t");
+      
+      return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
+    }
+
+    case TWM_COMMAND:
+    {
+      if (wparam == IDC_CLOSE)
+      {
+        TuiDestroyWnd(wnd);
+      }
+      else if (wparam == IDC_MSG)
+      {
+        TuiShowInputBox(wnd,
+          TWM_USER+2,
+          "Input Price",
+          "Enter Price:",
+          MB_OKCANCEL,
+          20,
+          TES_DECIMAL|TES_AUTOHSCROLL|TES_RIGHT,  
+          "0.0",
+          TW_SHOW);
+      }
+      else if (wparam == IDC_EDITCELL)
+      {
+        TuiShowLineInputBox(wnd,
+          TWM_USER+3,
+          18, 30,
+          "Do you want to save? (Y/N)",
+          "Y",
+          "YN",
+          0,
+          TW_SHOW);
+      }
+      break;
+    }
+    case TWM_NOTIFY:
+    {
+      nmhdr = (NMHDR*)lparam;
+      switch (nmhdr->code)
+      {
+        case (TWM_USER+2):
+        {
+          RESPONSEMSGBOX* res = (RESPONSEMSGBOX*)lparam;
+          mylistctlproc_onnotify(wnd, res);
+          break;
+        }
+        case (TWM_USER+3):
+        {
+          RESPONSEMSGBOX* res = (RESPONSEMSGBOX*)lparam;
+          mylistctlproc_onnotify2(wnd, res);
+          break;
+        }
+        case TCN_DISPLAYINFO:
+        {
+          DISPLAYINFO* di = (DISPLAYINFO*)lparam;
+          TWND status = TuiGetWndItem(wnd, IDC_STATUSBAR);
+          TuiSetWndText(status, di->text);
+          break;
+        }
+      }
+      
+      break;
+    }
+
+  }
+  return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
+}
 
 LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   TWND list = 0;
   /*MSGBOXPARAM param;*/
   SUBITEM item;
+  NMHDR* nmhdr = 0;
 
   switch (msg)
   {
@@ -271,7 +459,7 @@ LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       item.attrs = TuiGetColor(CYAN_MAGENTA); 
       TLC_SetItem(list, LCFM_ATTRS, &item);
       
-      return TUI_CONTINUE;
+      return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
     }
 
     case TWM_COMMAND:
@@ -282,24 +470,162 @@ LONG mylistctlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       }
       else if (wparam == IDC_MSG)
       {
-
-        TuiMsgBox(wnd,
-          "Hello World",
-          "Welcome to the real world.",
-          MB_OK);
-
-
+        TuiShowInputBox(wnd,
+          TWM_USER+2,
+          "Input Price",
+          "Enter Price:",
+          MB_OKCANCEL,
+          20,
+          TES_DECIMAL|TES_AUTOHSCROLL|TES_RIGHT,  
+          "0.0",
+          TW_SHOW);
       }
       else if (wparam == IDC_EDITCELL)
       {
-        list = TuiGetWndItem(wnd, IDC_LISTBOX1);
-        /*TLC_EditItem(list, 4, 3);*/
+        TuiShowLineInputBox(wnd,
+          TWM_USER+3,
+          18, 30,
+          "Do you want to save? (Y/N)",
+          "Y",
+          "YN",
+          0,
+          TW_SHOW);
       }
+      break;
+    }
+    case TWM_NOTIFY:
+    {
+      nmhdr = (NMHDR*)lparam;
+      switch (nmhdr->code)
+      {
+        case (TWM_USER+2):
+        {
+          RESPONSEMSGBOX* res = (RESPONSEMSGBOX*)lparam;
+          mylistctlproc_onnotify(wnd, res);
+          break;
+        }
+        case (TWM_USER+3):
+        {
+          RESPONSEMSGBOX* res = (RESPONSEMSGBOX*)lparam;
+          mylistctlproc_onnotify2(wnd, res);
+          break;
+        }
+      }
+      
       break;
     }
 
   }
-  return TuiDefWndProc(wnd, msg, wparam, lparam);
+  return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
+}
+
+WNDTEMPL framepage[] =
+{
+  { BUTTON, "Close",    IDC_CLOSE,    14,  41,  1,  11, TWS_CHILD|TWS_VISIBLE, 0 },
+  { STATIC, "Esc to exit: ", IDC_STATUSBAR, 24,  1,  1, 79, TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|TSS_LEFT, 0 },
+  /* the last is the end-of-controls */
+  { 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+#define IDC_PAGE1         10001
+#define IDC_PAGE2         10021
+#define IDC_PAGE3         10041
+
+WNDTEMPL page1[] =
+{
+  /* 2nd and others are controls */
+  { STATIC, "Name:",    IDC_PAGE1+1,  1,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "12345678901234567890",       IDC_PAGE1+2,  1, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_LEFT|TES_UPPERCASE|TES_AUTOHSCROLL, 0 },
+  { STATIC, "ID:",    IDC_PAGE1+3,  2,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "DT66234",     IDC_PAGE1+4,  2, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_CENTER|TES_AUTOHSCROLL, 0 },
+  { STATIC, "Tel:",    IDC_PAGE1+5,  3,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "66892030023",   IDC_PAGE1+6,  3, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_NUMBER|TES_RIGHT|TES_AUTOHSCROLL, 0 },
+  /* the last is the end-of-controls */
+  { 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+
+WNDTEMPL page2[] =
+{
+  /* 2nd and others are controls */
+  { STATIC, "Email:",    IDC_PAGE2+1,  4,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "abc@abc.com", IDC_PAGE2+2,  4, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|
+      TES_AUTOHSCROLL, 0 },
+  { STATIC, "Password:",    IDC_PAGE2+3,  5,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "welcome1!", IDC_PAGE2+4,  5, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_LEFT|TES_PASSWORD|TES_AUTOHSCROLL, 0 },
+  { STATIC, "Price:",    IDC_PAGE2+5,  6,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "132,399.50", IDC_PAGE2+6,  6, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_RIGHT|TES_AUTODECIMALCOMMA|TES_AUTOHSCROLL, 0 },
+  /* the last is the end-of-controls */
+  { 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+
+WNDTEMPL page3[] =
+{
+  /* 2nd and others are controls */
+  { STATIC, "ID:",    IDC_PAGE3+1,  2,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "DT66234",     IDC_PAGE3+2,  2, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_CENTER|TES_AUTOHSCROLL, 0 },
+  { STATIC, "Email:",    IDC_PAGE3+3,  4,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "abc@abc.com", IDC_PAGE3+4,  4, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|
+      TES_AUTOHSCROLL, 0 },
+  { STATIC, "Password:",    IDC_PAGE3+5,  5,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { EDITBOX,   "welcome1!", IDC_PAGE3+6,  5, 18,  1, 16, 
+    TWS_CHILD|TWS_VISIBLE|
+      TES_LEFT|TES_PASSWORD|TES_AUTOHSCROLL, 0 },
+  /* the last is the end-of-controls */
+  { 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+
+
+LONG myframepageproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+  LONG rc = TUI_CONTINUE;
+
+  switch (msg)
+  {
+    case TWM_INITDIALOG:
+    {
+      rc = TuiDefFrameWndProc(wnd, msg, wparam, lparam);
+      if (TUI_CONTINUE == rc)
+      {
+        rc = TuiFrameWndCreatePage(wnd, page1, 0);
+      }
+      if (TUI_CONTINUE == rc)
+      {
+        rc = TuiFrameWndCreatePage(wnd, page2, 0);
+      }
+      if (TUI_CONTINUE == rc)
+      {
+        rc = TuiFrameWndCreatePage(wnd, page3, 0);
+      }
+      return rc;
+    }
+
+    case TWM_COMMAND:
+    {
+      if (wparam == IDC_CLOSE)
+      {
+        TuiPostQuitMsg(0);
+      }
+      break;
+    }
+  }
+  return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
 }
 
 int main(int argc, char* argv[])
@@ -310,17 +636,28 @@ int main(int argc, char* argv[])
   TuiStartup();
 
   TuiSetNextMove(TVK_TAB);
-
   TuiRegisterCls("mywndproc", mywndproc);
   TuiRegisterCls("mylistctlproc", mylistctlproc);
+  TuiRegisterCls("myframepageproc", myframepageproc);
+  TuiRegisterCls("mylistpagectlproc", mylistpagectlproc);
 
-  wnd = TuiCreateWndTempl(dlg1, 0);
+  wnd = TuiCreateWndTempl(frame1, 0);
+  
+  /*
+  wnd = TuiCreateFrameWnd(
+          "myframepageproc",
+          "frame window",
+          TWS_WINDOW|TWS_VISIBLE,
+          0, 0, 25, 80,
+          framepage, 0);
+          */
   if (!wnd)
   {
     TuiShutdown();
     return -1;
   }
   TuiShowWnd(wnd, 1);
+  TuiSendMsg(wnd, TWM_SETCURPAGE, 0, 0);
 
   while (TuiGetMsg(&msg))
   {

@@ -8,9 +8,11 @@
 
 #ifdef __USE_CURSES__
 #include <curses.h>
+#elif (defined __USE_QIO__ && defined __VMS__)
+#include <qio_init.h>
 #endif
 
-#include "tui.h"
+#include "m_tui.h"
 /*-------------------------------------------------------------------
  * Frame window functions
  *-----------------------------------------------------------------*/
@@ -18,28 +20,54 @@
 
 struct _SHOWMSGBOXSTRUCT
 {
-  UINT   id;
-  INT    y;
-  INT    x;
-  LPCSTR text;
-  LPCSTR caption;
-  UINT   flags; /* MB_OK, MB_YES, MB_NO, MB_CANCEL */
-  INT    limit;
-  LPCSTR deftext;
-  DWORD  edtstyle;
-  DWORD  wndattrs;
-  LPCSTR validch;
-  INT    align;
+  UINT      id;
+  INT       y;
+  INT       x;
+  LPCSTR    text;
+  LPCSTR    caption;
+  UINT      flags; /* MB_OK, MB_YES, MB_NO, MB_CANCEL */
+  INT       limit;
+  LPCSTR    deftext;
+  DWORD     edtstyle;
+  DWORD     wndattrs;
+  LPCSTR    validch;
+  INT       align;
 };
 typedef struct _SHOWMSGBOXSTRUCT SHOWMSGBOX;
 
 struct _WNDENABLEDSTRUCT
 {
-  TWND    child;
-  struct _WNDENABLEDSTRUCT*      prev;
-  struct _WNDENABLEDSTRUCT*      next;
+  TWND      child;
+  struct _WNDENABLEDSTRUCT*     prev;
+  struct _WNDENABLEDSTRUCT*     next;
 };
 typedef struct _WNDENABLEDSTRUCT twndenabled_t;
+
+struct _WNDVISIBLESTRUCT
+{
+  TWND      child;
+  struct _WNDVISIBLESTRUCT*     prev;
+  struct _WNDVISIBLESTRUCT*     next;
+};
+typedef struct _WNDVISIBLESTRUCT twndvisible_t;
+
+struct _WNDPAGESTRUCT
+{
+  INT     id;
+  TWND    firstchild;
+  TWND    lastchild;
+  VOID*   param;
+
+  twndvisible_t*  firstvisible;
+  twndvisible_t*  lastvisible;
+  
+  twndenabled_t*  firstenabled;
+  twndenabled_t*  lastenabled;
+  
+  struct _WNDPAGESTRUCT*        prev;
+  struct _WNDPAGESTRUCT*        next;
+};
+typedef struct _WNDPAGESTRUCT twndpage_t;
 
 struct _TFRAMEWNDSTRUCT
 {
@@ -54,27 +82,175 @@ struct _TFRAMEWNDSTRUCT
   twndenabled_t*  firstwndenabled;
   twndenabled_t*  lastwndenabled;
   
+  twndpage_t*     firstpage;
+  twndpage_t*     lastpage;
+  twndpage_t*     activepage;
+  INT             npages;
+  
   SHOWMSGBOX      msgbox;
-  LONG            nextmove;
   UINT            msg;
+  VOID*           exparam;
 };
 typedef struct _TFRAMEWNDSTRUCT _TFRAMEWND;
 typedef struct _TFRAMEWNDSTRUCT *TFRAMEWND;
 
-VOID _TFRAMEWND_RestoreAndEnableAllWnds(TWND wnd);
-VOID _TFRAMEWND_SaveAndDisableAllWnds(TWND wnd);
+VOID _TFRMWND_RestoreEnableAllWnds(TWND wnd);
+VOID _TFRMWND_SaveAndDisableAllWnds(TWND wnd);
+VOID _TFRMWND_RestoreAndShowAllWndsPage(TWND wnd);
+VOID _TFRMWND_SaveAndHideAllWndsPage(TWND wnd);
+twndpage_t* _TFRMWND_FindPage(TFRAMEWND frmwnd, INT npage);
+VOID _TFRMWND_ShowPage(twndpage_t* page, INT show);
 
-INT  TFRAMEWND_OnInitDailog(TWND wnd, LPARAM lparam);
-VOID TFRAMEWND_OnCommand(TWND wnd, UINT cmd);
-VOID TFRAMEWND_OnShowMsgBox(TWND wnd, SHOWMSGBOX* param);
-VOID TFRAMEWND_OnHideMsgBox(TWND wnd);
-VOID TFRAMEWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param);
-VOID TFRAMEWND_OnHideInputBox(TWND wnd);
-VOID TFRAMEWND_OnShowLineInputBox(TWND wnd, SHOWMSGBOX* param);
-VOID TFRAMEWND_OnHideLineInputBox(TWND wnd);
-VOID TFRAMEWND_OnNotify(TWND wnd, NMHDR* nmhdr);
+INT  _TFRMWND_OnInitDailog(TWND wnd, LPARAM lparam);
+VOID _TFRMWND_OnCommand(TWND wnd, UINT cmd);
+VOID _TFRMWND_OnShowMsgBox(TWND wnd, SHOWMSGBOX* param);
+VOID _TFRMWND_OnHideMsgBox(TWND wnd);
+VOID _TFRMWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param);
+VOID _TFRMWND_OnHideInputBox(TWND wnd);
+VOID _TFRMWND_OnShowLineInputBox(TWND wnd, SHOWMSGBOX* param);
+VOID _TFRMWND_OnHideLineInputBox(TWND wnd);
+VOID _TFRMWND_OnNotify(TWND wnd, NMHDR* nmhdr);
+INT  _TFRMWND_OnInitPage(TWND wnd, TINITPAGE initpage, LPVOID param);
+VOID _TFRMWND_OnShowPage(TWND wnd, INT npage);
+VOID _TFRMWND_OnHidePage(TWND wnd, INT npage);
+VOID _TFRMWND_OnSetCurPage(TWND wnd, INT npage);
+INT  _TFRMWND_OnGetCurPage(TWND wnd);
+VOID _TFRMWND_OnKeyDown(TWND wnd, LONG ch);
 
-INT  TFRAMEWND_OnInitDailog(TWND wnd, LPARAM lparam)
+INT  _TFRMWND_OnInitPage(TWND wnd, TINITPAGE initpage, LPVOID param)
+{
+  twndpage_t* page = 0;
+  TFRAMEWND frmwnd = TuiGetWndParam(wnd);
+  
+  /* init */
+  page = (twndpage_t*)malloc(sizeof(twndpage_t));
+  if (!page)
+  {
+    return TUI_MEM;
+  }
+  /* make links */
+  memset(page, 0, sizeof(twndpage_t));
+  page->id         = frmwnd->npages;
+  page->param      = param;
+  page->firstchild = initpage->firstchild;
+  page->lastchild  = initpage->lastchild;
+
+  if (frmwnd->firstpage)
+  {
+    page->prev = frmwnd->lastpage;
+    frmwnd->lastpage->next = page;
+    frmwnd->lastpage = page;
+  }
+  else
+  {
+    frmwnd->firstpage = frmwnd->lastpage = page;
+    frmwnd->activepage = page;
+  }
+  _TFRMWND_ShowPage(page, TW_HIDE);
+  /* increment counter */
+  ++frmwnd->npages;
+
+  return TUI_CONTINUE;
+}
+
+twndpage_t* _TFRMWND_FindPage(TFRAMEWND frmwnd, INT npage)
+{
+  twndpage_t* page = frmwnd->firstpage;
+  INT i = 0;
+  
+  if (npage < 0 || npage >= frmwnd->npages)
+  {
+    return 0;
+  }
+  while (page)
+  {
+    if (i == npage)
+    {
+      break;
+    }
+    page = page->next;
+    ++i;
+  }
+  return page;
+}
+
+VOID _TFRMWND_OnSetCurPage(TWND wnd, INT npage)
+{
+  TFRAMEWND frmwnd = TuiGetWndParam(wnd);
+  twndpage_t* page = frmwnd->activepage;
+  twndpage_t* newpage = _TFRMWND_FindPage(frmwnd, npage);
+  LONG rc = TUI_CONTINUE;
+  PAGECHANGE pc;
+  
+  if (newpage)
+  {
+    /* notify to window */
+    pc.hdr.id   = TuiGetWndID(wnd);
+    pc.hdr.ctl  = wnd;
+    pc.hdr.code = TFN_PAGECHANGING;
+    pc.frompage = page->id;
+    pc.topage   = newpage->id;
+    rc = TuiSendMsg(wnd, TWM_NOTIFY, 0, (LPARAM)&pc);
+    if (rc != TUI_CONTINUE)
+    {
+      return;
+    }
+    /* hide current page */
+    _TFRMWND_ShowPage(page, TW_HIDE);
+    /* set new active page */
+    frmwnd->activepage = newpage;
+    /* show the new page */
+    _TFRMWND_ShowPage(newpage, TW_SHOW);
+    /* notify to window */
+    pc.hdr.id   = TuiGetWndID(wnd);
+    pc.hdr.ctl  = wnd;
+    pc.hdr.code = TFN_PAGECHANGED;
+    pc.frompage = page->id;
+    pc.topage   = newpage->id;
+    rc = TuiPostMsg(wnd, TWM_NOTIFY, 0, (LPARAM)&pc);
+  }
+}
+
+INT _TFRMWND_OnGetCurPage(TWND wnd)
+{
+  TFRAMEWND frmwnd = TuiGetWndParam(wnd);
+  return (frmwnd->activepage ? frmwnd->activepage->id : -1);
+}
+
+VOID _TFRMWND_ShowPage(twndpage_t* page, INT show)
+{
+  TWND child = 0;
+  
+  if (page)
+  {
+    child = page->firstchild;
+    while (child && child != page->lastchild)
+    {
+      TuiShowWnd(child, show);
+      child = TuiGetNextWnd(child);
+    }
+    if (page->lastchild)
+    {
+      TuiShowWnd(page->lastchild, show);
+    }
+  }
+}
+
+VOID _TFRMWND_OnShowPage(TWND wnd, INT npage)
+{
+  TFRAMEWND frmwnd = TuiGetWndParam(wnd);
+  twndpage_t* page = _TFRMWND_FindPage(frmwnd, npage);
+  _TFRMWND_ShowPage(page, TW_SHOW);
+}
+
+VOID _TFRMWND_OnHidePage(TWND wnd, INT npage)
+{
+  TFRAMEWND frmwnd = TuiGetWndParam(wnd);
+  twndpage_t* page = _TFRMWND_FindPage(frmwnd, npage);
+  _TFRMWND_ShowPage(page, TW_HIDE);
+}
+
+INT  _TFRMWND_OnInitDailog(TWND wnd, LPARAM lparam)
 {
   TFRAMEWND frmwnd = 0;
 
@@ -180,7 +356,7 @@ INT  TFRAMEWND_OnInitDailog(TWND wnd, LPARAM lparam)
   return TUI_CONTINUE;
 }
 
-VOID _TFRAMEWND_RestoreAndEnableAllWnds(TWND wnd)
+VOID _TFRMWND_RestoreEnableAllWnds(TWND wnd)
 {
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
   twndenabled_t* wndenabled = frmwnd->lastwndenabled;
@@ -202,7 +378,7 @@ VOID _TFRAMEWND_RestoreAndEnableAllWnds(TWND wnd)
   TuiSetFocus(frmwnd->lastfocus);
 }
 
-VOID _TFRAMEWND_SaveAndDisableAllWnds(TWND wnd)
+VOID _TFRMWND_SaveAndDisableAllWnds(TWND wnd)
 {
   TWND child = TuiGetFirstChildWnd(wnd);
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
@@ -234,7 +410,7 @@ VOID _TFRAMEWND_SaveAndDisableAllWnds(TWND wnd)
   } /* child windows */
 }
 
-VOID TFRAMEWND_OnShowMsgBox(TWND wnd, SHOWMSGBOX* param)
+VOID _TFRMWND_OnShowMsgBox(TWND wnd, SHOWMSGBOX* param)
 {
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
   LONG caplen = 0, textlen = 0, wndwidth = 0;
@@ -253,7 +429,7 @@ VOID TFRAMEWND_OnShowMsgBox(TWND wnd, SHOWMSGBOX* param)
   frmwnd->msg       = TWM_SHOWMSGBOX;
   
   /* disable all objects */
-  _TFRAMEWND_SaveAndDisableAllWnds(wnd);
+  _TFRMWND_SaveAndDisableAllWnds(wnd);
   
   TuiSetWndText(frmwnd->edtinput, "");
 
@@ -322,7 +498,7 @@ VOID TFRAMEWND_OnShowMsgBox(TWND wnd, SHOWMSGBOX* param)
       {
         /* move buttons */
         TuiMoveWnd(btns[i], rc.y + 5, rc.x + x + 2, 1, FRMWND_BTNWIDTH);
-        TuiVisibleWnd(btns[i], TW_SHOW);
+        TuiShowWnd(btns[i], TW_SHOW);
         /* next button moved */
         x += FRMWND_BTNWIDTH + 1;
         --nbtns;
@@ -331,33 +507,33 @@ VOID TFRAMEWND_OnShowMsgBox(TWND wnd, SHOWMSGBOX* param)
   }
 }
 
-VOID TFRAMEWND_OnHideMsgBox(TWND wnd)
+VOID _TFRMWND_OnHideMsgBox(TWND wnd)
 {
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
   memset(&frmwnd->msgbox, 0, sizeof(SHOWMSGBOX));
   frmwnd->msg = 0;
   /* enable all objects */
-  _TFRAMEWND_RestoreAndEnableAllWnds(wnd);
+  _TFRMWND_RestoreEnableAllWnds(wnd);
   
   TuiEnableWnd(frmwnd->btnyes, TW_DISABLE);
-  TuiVisibleWnd(frmwnd->btnyes, TW_HIDE);
+  TuiShowWnd(frmwnd->btnyes, TW_HIDE);
   
   TuiEnableWnd(frmwnd->btnno, TW_DISABLE);
-  TuiVisibleWnd(frmwnd->btnno, TW_HIDE);
+  TuiShowWnd(frmwnd->btnno, TW_HIDE);
 
   TuiEnableWnd(frmwnd->btnok, TW_DISABLE);
-  TuiVisibleWnd(frmwnd->btnok, TW_HIDE);
+  TuiShowWnd(frmwnd->btnok, TW_HIDE);
 
   TuiEnableWnd(frmwnd->btncancel, TW_DISABLE);
-  TuiVisibleWnd(frmwnd->btncancel, TW_HIDE);
+  TuiShowWnd(frmwnd->btncancel, TW_HIDE);
 
   TuiEnableWnd(frmwnd->edtinput, TW_DISABLE);
-  TuiVisibleWnd(frmwnd->edtinput, TW_HIDE);
+  TuiShowWnd(frmwnd->edtinput, TW_HIDE);
 
   TuiInvalidateWnd(wnd);
 }
 
-VOID TFRAMEWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param)
+VOID _TFRMWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param)
 {
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
   LONG caplen = 0, textlen = 0, wndwidth = 0;
@@ -376,7 +552,7 @@ VOID TFRAMEWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param)
   frmwnd->msg       = TWM_SHOWINPUTBOX;
   
   /* disable all objects */
-  _TFRAMEWND_SaveAndDisableAllWnds(wnd);
+  _TFRMWND_SaveAndDisableAllWnds(wnd);
   
   /* enable special objects */
   if (param->flags & MB_OK)
@@ -432,7 +608,7 @@ VOID TFRAMEWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param)
     1,
     (param->limit < rc.cols - 2 ? param->limit : rc.cols - 2));
   TuiEnableWnd(frmwnd->edtinput, TW_ENABLE);
-  TuiVisibleWnd(frmwnd->edtinput, TW_SHOW);
+  TuiShowWnd(frmwnd->edtinput, TW_SHOW);
   
   if (nbtns > 0)
   {
@@ -443,7 +619,7 @@ VOID TFRAMEWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param)
       {
         /* move buttons */
         TuiMoveWnd(btns[i], rc.y + 5, rc.x + x + 2, 1, FRMWND_BTNWIDTH);
-        TuiVisibleWnd(btns[i], TW_SHOW);
+        TuiShowWnd(btns[i], TW_SHOW);
         /* next button moved */
         x += FRMWND_BTNWIDTH + 1;
         --nbtns;
@@ -454,14 +630,12 @@ VOID TFRAMEWND_OnShowInputBox(TWND wnd, SHOWMSGBOX* param)
   TuiSetFocus(frmwnd->edtinput);
 }
 
-VOID TFRAMEWND_OnHideInputBox(TWND wnd)
+VOID _TFRMWND_OnHideInputBox(TWND wnd)
 {
-  TFRAMEWND frmwnd = TuiGetWndParam(wnd);
-  TFRAMEWND_OnHideMsgBox(wnd);
-  TuiSetNextMove(frmwnd->nextmove);
+  _TFRMWND_OnHideMsgBox(wnd);
 }
 
-VOID TFRAMEWND_OnShowLineInputBox(TWND wnd, SHOWMSGBOX* param)
+VOID _TFRMWND_OnShowLineInputBox(TWND wnd, SHOWMSGBOX* param)
 {
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
   RECT rc;
@@ -480,7 +654,7 @@ VOID TFRAMEWND_OnShowLineInputBox(TWND wnd, SHOWMSGBOX* param)
   TuiSetWndText(frmwnd->edtinput, param->deftext);
   
   /* disable all objects */
-  _TFRAMEWND_SaveAndDisableAllWnds(wnd);
+  _TFRMWND_SaveAndDisableAllWnds(wnd);
   
   /* enable special objects */
   textlen = strlen(param->text) + param->limit;
@@ -541,12 +715,12 @@ VOID TFRAMEWND_OnShowLineInputBox(TWND wnd, SHOWMSGBOX* param)
   TuiSendMsg(wnd, TWM_COMMAND, (WPARAM)IDOK, 0);
 }
 
-VOID TFRAMEWND_OnHideLineInputBox(TWND wnd)
+VOID _TFRMWND_OnHideLineInputBox(TWND wnd)
 {
-  TFRAMEWND_OnHideMsgBox(wnd);
+  _TFRMWND_OnHideMsgBox(wnd);
 }
 
-VOID TFRAMEWND_OnCommand(TWND wnd, UINT cmd)
+VOID _TFRMWND_OnCommand(TWND wnd, UINT cmd)
 {
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
   switch (cmd)
@@ -575,9 +749,10 @@ VOID TFRAMEWND_OnCommand(TWND wnd, UINT cmd)
   }
 }
 
-VOID TFRAMEWND_OnNotify(TWND wnd, NMHDR* nmhdr)
+VOID _TFRMWND_OnNotify(TWND wnd, NMHDR* nmhdr)
 {
   TFRAMEWND frmwnd = TuiGetWndParam(wnd);
+  
   switch (nmhdr->code)
   {
     case TEN_KILLFOCUS:
@@ -587,9 +762,58 @@ VOID TFRAMEWND_OnNotify(TWND wnd, NMHDR* nmhdr)
         if (TWM_SHOWLINEINPUTBOX == frmwnd->msg)
         {
           TuiSendMsg(wnd, TWM_COMMAND, (WPARAM)IDOK, 0);
+          break;
         }
+      }      
+    }
+  }
+}
+
+VOID _TFRMWND_OnKeyDown(TWND wnd, LONG ch)
+{
+  TFRAMEWND frmwnd = TuiGetWndParam(wnd);
+  twndpage_t* page = frmwnd->activepage;
+  INT repaint = 0;
+  
+  if (page)
+  {
+    switch(ch)
+    {
+      case TVK_PRIOR:
+  #ifdef __USE_CURSES__
+      case KEY_PPAGE:
+  #elif (defined __USE_QIO__ && defined __VMS__)
+      case KEY_PREV:
+  #endif
+      {
+        if (page->id > 0)
+        {
+          _TFRMWND_OnSetCurPage(wnd, page->id - 1);
+          ++repaint;
+        }
+        break;
+      }
+      
+      case TVK_NEXT:
+  #ifdef __USE_CURSES__
+      case KEY_NPAGE:
+  #elif (defined __USE_QIO__ && defined __VMS__)
+      case KEY_NEXT:
+  #endif
+      {
+        if (page->id < frmwnd->npages - 1)
+        {
+          _TFRMWND_OnSetCurPage(wnd, page->id + 1);
+          ++repaint;
+        }
+        break;
       }
     }
+    if (repaint)
+    {
+      TuiInvalidateWnd(wnd);
+    }
+
   }
 }
 
@@ -597,20 +821,26 @@ LONG TuiDefFrameWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   switch (msg)
   {
+    case TWM_KEYDOWN:
+    {
+      _TFRMWND_OnKeyDown(wnd, (LONG)wparam);
+      return 0;
+    }
+    
     case TWM_INITDIALOG:
     {
-      return TFRAMEWND_OnInitDailog(wnd, lparam);
+      return _TFRMWND_OnInitDailog(wnd, lparam);
     }
 
     case TWM_SHOWMSGBOX:
     {
       if (TW_SHOW == wparam)
       {
-        TFRAMEWND_OnShowMsgBox(wnd, (SHOWMSGBOX*)lparam);
+        _TFRMWND_OnShowMsgBox(wnd, (SHOWMSGBOX*)lparam);
       }
       else
       {
-        TFRAMEWND_OnHideMsgBox(wnd);
+        _TFRMWND_OnHideMsgBox(wnd);
       }
       return 0;
     }
@@ -619,11 +849,11 @@ LONG TuiDefFrameWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
       if (TW_SHOW == wparam)
       {
-        TFRAMEWND_OnShowInputBox(wnd, (SHOWMSGBOX*)lparam);
+        _TFRMWND_OnShowInputBox(wnd, (SHOWMSGBOX*)lparam);
       }
       else
       {
-        TFRAMEWND_OnHideInputBox(wnd);
+        _TFRMWND_OnHideInputBox(wnd);
       }
       return 0;
     }
@@ -632,28 +862,98 @@ LONG TuiDefFrameWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
       if (TW_SHOW == wparam)
       {
-        TFRAMEWND_OnShowLineInputBox(wnd, (SHOWMSGBOX*)lparam);
+        _TFRMWND_OnShowLineInputBox(wnd, (SHOWMSGBOX*)lparam);
       }
       else
       {
-        TFRAMEWND_OnHideLineInputBox(wnd);
+        _TFRMWND_OnHideLineInputBox(wnd);
       }
       return 0;
     }
     
     case TWM_COMMAND:
     {
-      TFRAMEWND_OnCommand(wnd, (UINT)wparam);
+      _TFRMWND_OnCommand(wnd, (UINT)wparam);
       break;
     }
     
     case TWM_NOTIFY:
     {
-      TFRAMEWND_OnNotify(wnd, (NMHDR*)lparam);
+      if (TFN_PAGECHANGING == ((NMHDR*)lparam)->code)
+      {
+        return TUI_CONTINUE;
+      }
+      else
+      {
+        _TFRMWND_OnNotify(wnd, (NMHDR*)lparam);
+      }
       break;
+    }
+    
+    case TWM_INITPAGE:
+    {
+      return _TFRMWND_OnInitPage(wnd, (TINITPAGE)wparam, (LPVOID)lparam);
+    }
+    
+    case TWM_SHOWPAGE:
+    {
+      if (TW_SHOW == lparam)
+      {
+        _TFRMWND_OnShowPage(wnd, (INT)wparam);
+      }
+      else
+      {
+        _TFRMWND_OnHidePage(wnd, (INT)wparam);
+      }
+      return 0;
+    }
+
+    case TWM_SETCURPAGE:
+    {
+      _TFRMWND_OnSetCurPage(wnd, (INT)wparam);
+      return 0;
+    }
+
+    case TWM_GETCURPAGE:
+    {
+      return _TFRMWND_OnGetCurPage(wnd);
     }
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
+}
+
+VOID TuiShowPage(
+  TWND    wnd,
+  INT     npage,
+  INT     show
+)
+{
+  TuiSendMsg(wnd,
+    TWM_SHOWPAGE,
+    (WPARAM)npage,
+    (LPARAM)(TW_SHOW == show ? show : TW_HIDE));
+}
+
+VOID TuiSetCurPage(
+  TWND    wnd,
+  INT     npage
+)
+{
+  TuiSendMsg(wnd,
+    TWM_SETCURPAGE,
+    (WPARAM)npage,
+    (LPARAM)0);
+}
+
+
+INT TuiGetCurPage(
+  TWND    wnd
+)
+{
+  return (INT)TuiSendMsg(wnd,
+                TWM_GETCURPAGE,
+                (WPARAM)0,
+                (LPARAM)0);
 }
 
 VOID TuiShowMsgBox(

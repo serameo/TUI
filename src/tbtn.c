@@ -20,19 +20,20 @@
  struct _TBUTTONSTRUCT
 {
   INT              state;
+  VOID*            exparam;
 };
 typedef struct _TBUTTONSTRUCT _TBUTTON;
 typedef struct _TBUTTONSTRUCT *TBUTTON;
 
-LONG TBTN_OnCreate(TWND wnd);
-VOID TBTN_OnPaint(TWND wnd, TDC dc);
-VOID TBTN_OnSetFocus(TWND wnd);
-LONG TBTN_OnKillFocus(TWND wnd);
-VOID TBTN_OnDestroy(TWND wnd);
-VOID TBTN_OnKeyDown(TWND wnd, LONG ch);
+LONG _TBTN_OnCreate(TWND wnd);
+VOID _TBTN_OnPaint(TWND wnd, TDC dc);
+VOID _TBTN_OnSetFocus(TWND wnd);
+LONG _TBTN_OnKillFocus(TWND wnd);
+VOID _TBTN_OnDestroy(TWND wnd);
+VOID _TBTN_OnKeyDown(TWND wnd, LONG ch);
 LONG BUTTONPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-VOID TBTN_OnPaint(TWND wnd, TDC dc)
+VOID _TBTN_OnPaint(TWND wnd, TDC dc)
 {
   LONG len = 0;
   CHAR buf[TUI_MAX_WNDTEXT+1];
@@ -68,7 +69,7 @@ VOID TBTN_OnPaint(TWND wnd, TDC dc)
   TuiMoveYX(dc, rc.y, rc.x);  
 }
 
-LONG TBTN_OnCreate(TWND wnd)
+LONG _TBTN_OnCreate(TWND wnd)
 {
   TBUTTON btn = 0;
   /* initial memory for static control */
@@ -77,6 +78,7 @@ LONG TBTN_OnCreate(TWND wnd)
   {
     return TUI_ERROR;
   }
+  memset(btn, 0, sizeof(_TBUTTON));
   btn->state = TBS_RELEASED;
   
   TuiSetWndParam(wnd, (LPVOID)btn);
@@ -85,7 +87,7 @@ LONG TBTN_OnCreate(TWND wnd)
   return TUI_CONTINUE;
 }
 
-VOID TBTN_OnSetFocus(TWND wnd)
+VOID _TBTN_OnSetFocus(TWND wnd)
 {
   NMHDR nmhdr;
   TBUTTON btn = (TBUTTON)TuiGetWndParam(wnd);
@@ -101,7 +103,7 @@ VOID TBTN_OnSetFocus(TWND wnd)
   TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
 }
 
-LONG TBTN_OnKillFocus(TWND wnd)
+LONG _TBTN_OnKillFocus(TWND wnd)
 {
   NMHDR nmhdr;
   LONG rc = TUI_CONTINUE;
@@ -119,14 +121,14 @@ LONG TBTN_OnKillFocus(TWND wnd)
   return rc;
 }
 
-VOID TBTN_OnDestroy(TWND wnd)
+VOID _TBTN_OnDestroy(TWND wnd)
 {
   TBUTTON btn = (TBUTTON)TuiGetWndParam(wnd);
    
   free(btn);
 }
 
-VOID TBTN_OnKeyDown(TWND wnd, LONG ch)
+VOID _TBTN_OnKeyDown(TWND wnd, LONG ch)
 {
   TBUTTON btn = (TBUTTON)TuiGetWndParam(wnd);
   INT repaint = 0;
@@ -160,37 +162,37 @@ LONG BUTTONPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     case TWM_CREATE:
     {
       /* initial memory for static control */
-      return TBTN_OnCreate(wnd);
+      return _TBTN_OnCreate(wnd);
     }
     case TWM_DESTROY:
     {
       /* release memory of static control */
-      TBTN_OnDestroy(wnd);
+      _TBTN_OnDestroy(wnd);
       return 0;
     }
     case TWM_SETFOCUS:
     {
-      TBTN_OnSetFocus(wnd);
+      _TBTN_OnSetFocus(wnd);
       break;
     }
     case TWM_KILLFOCUS:
     {
-      return TBTN_OnKillFocus(wnd);
+      return _TBTN_OnKillFocus(wnd);
     }
     case TWM_KEYDOWN:
     {
-      TBTN_OnKeyDown(wnd, (LONG)wparam);
+      _TBTN_OnKeyDown(wnd, (LONG)wparam);
       break;
     }
     case TWM_PAINT:
     {
-      TBTN_OnPaint(wnd, TuiGetDC(wnd));
+      _TBTN_OnPaint(wnd, TuiGetDC(wnd));
       return 0;
     }
     case TBM_PRESS:
     {
-      TBTN_OnSetFocus(wnd);
-      TBTN_OnKeyDown(wnd, TVK_SPACE);
+      _TBTN_OnSetFocus(wnd);
+      _TBTN_OnKeyDown(wnd, TVK_SPACE);
       break;
     }
   }

@@ -17,17 +17,17 @@
 /*-------------------------------------------------------------------
  * STATIC functions
  *-----------------------------------------------------------------*/
-VOID TSTC_OnPaint(TWND wnd, TDC dc);
-LONG TSTC_OnCreate(TWND wnd);
+VOID _TSTC_OnPaint(TWND wnd, TDC dc);
+LONG _TSTC_OnCreate(TWND wnd);
 LONG STATICPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-LONG TSTC_OnCreate(TWND wnd)
+LONG _TSTC_OnCreate(TWND wnd)
 {
   TuiEnableWnd(wnd, TW_DISABLE);
   return TUI_CONTINUE;
 }
 
-VOID TSTC_OnPaint(TWND wnd, TDC dc)
+VOID _TSTC_OnPaint(TWND wnd, TDC dc)
 {
   CHAR buf[TUI_MAX_WNDTEXT+1];
   CHAR text[TUI_MAX_WNDTEXT+1];
@@ -49,12 +49,12 @@ LONG STATICPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   {
     case TWM_PAINT:
     {
-      TSTC_OnPaint(wnd, TuiGetDC(wnd));
+      _TSTC_OnPaint(wnd, TuiGetDC(wnd));
       return 0;
     }
     case TWM_CREATE:
     {
-      return TSTC_OnCreate(wnd);
+      return _TSTC_OnCreate(wnd);
     }
   }
   return TuiDefWndProc(wnd, msg, wparam, lparam);
