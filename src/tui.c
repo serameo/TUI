@@ -1479,6 +1479,7 @@ void TuiDestroyWnd(TWND wnd)
 
 LONG TuiPostMsg(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+  LONG size = 0;
   if (wnd)
   {
     tmsgq_t* msgq = (tmsgq_t*)malloc(sizeof(tmsgq_t));
@@ -1497,6 +1498,17 @@ LONG TuiPostMsg(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
         
         msgq->lparam = (LPARAM)nmhdr;
       }
+      else if (TWM_SETCURSOR == msg)
+      {
+        POS* pos = 0;
+        size = sizeof(POS);
+
+        pos = (POS*)malloc(size);
+        memset(pos, 0, size);
+        memcpy(pos, (POS*)lparam, size);
+
+        msgq->lparam = (LPARAM)pos;
+      }
       else
       {
         msgq->lparam = lparam;
@@ -1506,6 +1518,7 @@ LONG TuiPostMsg(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       if (env->tailq)
       {
         env->tailq->next = msgq;
+        env->tailq = msgq;
       }
       else
       {
@@ -1528,7 +1541,6 @@ LONG TuiSendMsg(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 
 LONG _TuiInvalidateWnd(TWND wnd)
 {
-  TWND activechild = TuiGetActiveChildWnd(wnd);
   TWND child = wnd->firstchild;
 
   TuiSendMsg(wnd, TWM_ERASEBK, (WPARAM)TuiGetDC(wnd), 0);
@@ -1540,32 +1552,33 @@ LONG _TuiInvalidateWnd(TWND wnd)
     child = child->nextwnd;
   }
   
+  return TUI_OK;
+}
+
+LONG TuiInvalidateWnd(TWND wnd)
+{
+  LONG rc = _TuiInvalidateWnd(wnd);
+  TWND activechild = TuiGetActiveChildWnd(wnd);
   if (!activechild)
   {
     activechild = TuiGetFirstActiveChildWnd(wnd);
   }
   if (activechild)
   {
+    TuiSetFocus(activechild);
     TuiMoveYX(TuiGetDC(activechild), activechild->y, activechild->x);
   }
-  return TUI_OK;
-}
-
-LONG TuiInvalidateWnd(TWND wnd)
-{
-  return _TuiInvalidateWnd(wnd);
+  return rc;
 }
 
 LONG TuiShowWnd(TWND wnd, LONG show)
 {
-  wnd->visible = show;
-  return _TuiInvalidateWnd(wnd);
+  return TuiSendMsg(wnd, TWM_SHOW, (WPARAM)show, 0);
 }
 
 LONG TuiEnableWnd(TWND wnd, LONG enable)
 {
-  wnd->enable = enable;
-  return TUI_OK;
+  return TuiSendMsg(wnd, TWM_ENABLE, (WPARAM)enable, 0);
 }
 
 TWND TuiGetFirstActiveChildWnd(TWND wnd)
@@ -1724,9 +1737,38 @@ DWORD TuiSetWndTextAttrs(TWND wnd, DWORD newattrs)
   return oldattrs;
 }
 
+LONG   TuiGetWndClsName(TWND wnd, LPSTR clsname, LONG cb)
+{
+  LONG len = strlen(wnd->clsname);
+  if (cb < 0 || !clsname)
+  {
+    return len;
+  }
+
+  memset(clsname, 0, cb);
+  if (cb > len)
+  {
+    cb = len;
+  }
+  strncpy(clsname, wnd->clsname, cb);
+  return len;
+}
+
+DWORD TuiGetWndStyleEx(TWND wnd)
+{
+  return wnd->exstyle;
+}
+
 DWORD TuiGetWndStyle(TWND wnd)
 {
   return wnd->style;
+}
+
+DWORD TuiSetWndStyleEx(TWND wnd, DWORD newstyle)
+{
+  DWORD oldstyle = wnd->exstyle;
+  wnd->exstyle = newstyle;
+  return oldstyle;
 }
 
 DWORD TuiSetWndStyle(TWND wnd, DWORD newstyle)
@@ -1860,7 +1902,8 @@ LONG TuiGetMsg(MSG* msg)
       env->headq = env->headq->next;
     }
     msgq->next = 0;
-    if (TWM_NOTIFY == msgq->msg)
+    if ((TWM_NOTIFY    == msgq->msg) ||
+        (TWM_SETCURSOR == msgq->msg))
     {
       free((VOID*)msgq->lparam);
     }
@@ -1888,6 +1931,7 @@ LONG _TuiAlignmentPrint(LPSTR out, LPCSTR in, LONG limit, INT align)
     len = limit;
   }
   memset(text, 0, TUI_MAX_WNDTEXT);
+  memset(out, 0, limit+1);
   
   if ((ALIGN_CENTER == align) || (TWS_CENTER & align))
   {
@@ -1910,21 +1954,23 @@ LONG _TuiAlignmentPrint(LPSTR out, LPCSTR in, LONG limit, INT align)
     {
       sprintf(text, "%s", in);
     }
+    strcpy(out, text);
   }
   else if ((ALIGN_RIGHT == align) || (TWS_RIGHT & align))
   {
     sprintf(text, "%*s",
       (INT)(limit),
       in);
+    strcpy(out, text);
   }
   else
   { 
     sprintf(text, "%-*s",
       (INT)(limit),
       in);
+    strncpy(out, text, limit);
   }
 
-  strcpy(out, text);
   return strlen(out);
 }
 
@@ -2044,11 +2090,9 @@ LONG TuiTranslateMsg(MSG* msg)
       return 0;
   }
 
-  /*case TVK_ENTER:*/ /*ENTER*/
   parent = TuiGetParent(msg->wnd);
   if (ch == nextmove)
   {
-    /*parent = TuiGetParent(msg->wnd);*/
     /* kill focus the current active window */
     nextwnd = TuiGetNextActiveChildWnd(parent);
     nextchild = TuiGetNextActiveChildWnd(msg->wnd);
@@ -2106,7 +2150,6 @@ LONG TuiTranslateMsg(MSG* msg)
   }
   else if (ch == prevmove)
   {
-    /*parent = TuiGetParent(msg->wnd);*/
     /* kill focus the current active window */
     prevwnd = TuiGetPrevActiveChildWnd(parent);
     rc = TuiSendMsg(msg->wnd, TWM_KILLFOCUS, 0, (LPARAM)prevwnd);
@@ -2270,6 +2313,22 @@ DWORD _TuiDefWndProc_OnGetTextAttrs(TWND wnd);
 VOID  _TuiDefWndProc_OnSetFocus(TWND wnd);
 VOID  _TuiDefWndProc_OnSetInfoText(TWND wnd, LPCSTR text);
 LONG  _TuiDefWndProc_OnGetInfoText(TWND wnd, LPSTR text, LONG cb);
+LONG  _TuiDefWndProc_OnShow(TWND wnd, LONG show);
+LONG  _TuiDefWndProc_OnEnable(TWND wnd, LONG enable);
+LONG  _TuiDefWndProc_OnGetCursor(TWND wnd, POS* pos);
+LONG  _TuiDefWndProc_OnSetCursor(TWND wnd, POS* pos);
+
+LONG  _TuiDefWndProc_OnGetCursor(TWND wnd, POS* pos)
+{
+  TuiGetYX(TuiGetDC(wnd), &pos->y, &pos->x);
+  return TUI_OK;
+}
+
+LONG  _TuiDefWndProc_OnSetCursor(TWND wnd, POS* pos)
+{
+  TuiMoveYX(TuiGetDC(wnd), pos->y, pos->x);
+  return TUI_OK;
+}
 
 LONG _TuiDefWndProc_OnEraseBk(TWND wnd, TDC dc)
 {
@@ -2391,6 +2450,7 @@ DWORD _TuiDefWndProc_OnGetTextAttrs(TWND wnd)
 
 VOID _TuiDefWndProc_OnSetFocus(TWND wnd)
 {
+  RECT rcwnd;
   DISPLAYINFO di;
   di.hdr.id    = TuiGetWndID(wnd);
   di.hdr.ctl   = wnd;
@@ -2401,7 +2461,22 @@ VOID _TuiDefWndProc_OnSetFocus(TWND wnd)
   {
     strcpy(di.text, wnd->infotext);
   }
-  TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&di);
+  TuiSendMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&di);
+
+  TuiGetWndRect(wnd, &rcwnd);
+  TuiMoveYX(TuiGetDC(wnd), rcwnd.y, rcwnd.x);
+}
+
+LONG  _TuiDefWndProc_OnShow(TWND wnd, LONG show)
+{
+  wnd->visible = show;
+  return TuiInvalidateWnd(wnd);
+}
+
+LONG  _TuiDefWndProc_OnEnable(TWND wnd, LONG enable)
+{
+  wnd->enable = enable;
+  return TUI_OK;
 }
 
 LONG TuiDefWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -2412,9 +2487,33 @@ LONG TuiDefWndProc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     case TWM_KILLFOCUS:
       return TUI_CONTINUE;
       
+    case TWM_SHOW:
+    {
+      return _TuiDefWndProc_OnShow(wnd,
+              (TW_SHOW == (INT)wparam ? TW_SHOW : TW_HIDE));
+    }
+
+    case TWM_ENABLE:
+    {
+      return _TuiDefWndProc_OnEnable(wnd,
+              (TW_ENABLE == (INT)wparam ? TW_ENABLE : TW_DISABLE));
+    }
+
     case TWM_SETFOCUS:
+    {
       _TuiDefWndProc_OnSetFocus(wnd);
       break;
+    }
+      
+    case TWM_GETCURSOR:
+    {
+      return _TuiDefWndProc_OnGetCursor(wnd, (POS*)lparam);
+    }
+      
+    case TWM_SETCURSOR:
+    {
+      return _TuiDefWndProc_OnSetCursor(wnd, (POS*)lparam);
+    }
       
     case TWM_ERASEBK:
     {

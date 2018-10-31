@@ -926,7 +926,9 @@ VOID _TLC_OnBeginEdit(TWND wnd)
   /* show edit box at the current row and column */
   _TLC_GetCellRect(lctl->editingcell, &rccell);
   TuiMoveWnd(lctl->editbox, rccell.y, rccell.x, rccell.lines, rccell.cols);
+
   editstyle = TLC_GetEditStyle(wnd, lctl->curselcol);
+
   TuiSetWndStyle(lctl->editbox, editstyle);
   if (editstyle & TES_DECIMAL)
   {
@@ -1025,6 +1027,7 @@ VOID _TLC_OnKeyDown(TWND wnd, LONG ch)
   switch (ch)
   {
     case TVK_SPACE:
+    /*case KEY_F(10):*/
     {
       /* toggle begin/end moving */
       _TLC_OnBeginMoving(wnd);
@@ -1577,10 +1580,16 @@ VOID  _TLPC_OnGetItemsPerPage(TWND wnd, INT nitems);
 VOID  _TLPC_OnSetCurRow(TWND wnd, INT idx);
 VOID  _TLPC_OnSetFocus(TWND wnd);
 VOID  _TLPC_OpenEditBox(TWND wnd, INT row);
+LONG  _TLPC_OnAddItem(TWND wnd, LPSTR text);
+LONG  _TLPC_OnAddItemEx(TWND wnd, LPSTR text, DWORD editstyle);
 
 VOID  _TLPC_OpenEditBox(TWND wnd, INT row)
 {
-  /* edit ok */
+  DWORD editstyle = _TLPC_OnGetEditStyle(wnd, row);
+/*  TWND edit = _TLC_OnGetEditBox(wnd);
+  TuiSetWndStyle(edit, editstyle);
+*/
+  TLPC_SetEditStyle(wnd, row, editstyle);
   /* end editing from the previous */
   _TLC_OnEndEdit(wnd, LC_ENDEDITOK);
   
@@ -1616,6 +1625,7 @@ VOID _TLPC_OnKeyDown(TWND wnd, LONG ch)
     /* ignore some keys */
     case TVK_SPACE:
 #if defined __USE_CURSES__
+    /*case KEY_F(10):*/
     case KEY_F(6):
 #elif defined __USE_QIO__
     case KEY_F6:
@@ -1667,6 +1677,7 @@ VOID _TLPC_OnKeyDown(TWND wnd, LONG ch)
     {
       break;
     }
+/*
     case TVK_TAB:
     case KEY_BTAB:
     {
@@ -1676,6 +1687,7 @@ VOID _TLPC_OnKeyDown(TWND wnd, LONG ch)
       TuiPostMsg(TuiGetParent(wnd), TWM_KEYDOWN, (WPARAM)ch, 0);
       break;
     }
+*/
     default:
     {
       LISTCTRLPROC(wnd, TWM_KEYDOWN, (WPARAM)ch, (LPARAM)0);
@@ -1701,7 +1713,10 @@ DWORD _TLPC_OnGetEditStyle(TWND wnd, INT idx)
 {
   TLISTCTRL lctl = TuiGetWndParam(wnd);
   DWORD style = 0;  
-  tlistcell_t* cell = _TLC_FindCellByIndex(lctl, HEADER_VALUE, idx);
+  tlistcell_t* cell = 0;
+
+  idx = lctl->curselrow;
+  cell = _TLC_FindCellByIndex(lctl, HEADER_VALUE, idx);
   if (cell)
   {
     style = cell->editstyle;
@@ -1747,20 +1762,6 @@ VOID _TLPC_OnSetCurRow(TWND wnd, INT idx)
   }
   /* set current selected row */
   lctl->curselrow = idx;
-  
-  /* end editing from the previous */
-  _TLC_OnEndEdit(wnd, LC_ENDEDITOK);
-  
-  /* re-fresh window to re-calculate position */
-  TuiInvalidateWnd(wnd);
-  
-  /* move edit to the new position */
-  _TLC_OnBeginMoving(wnd);
-  _TLC_OnMovingCursor(wnd, KEY_RIGHT);
-  /*_TLC_OnEndMoving(wnd);*/
-  
-  /* open the current edit position */
-  _TLC_OnBeginEdit(wnd);
 }
 
 LONG _TLPC_OnAddItem(TWND wnd, LPSTR text)
@@ -1768,16 +1769,17 @@ LONG _TLPC_OnAddItem(TWND wnd, LPSTR text)
   LONG nitems = _TLC_OnAddItem(wnd, text, 3);
   if (1 == nitems)
   {
-    /* re-fresh window to re-calculate position */
-    TuiInvalidateWnd(wnd);
-    
-    /* move edit to the new position */
-    _TLC_OnBeginMoving(wnd);
-    _TLC_OnMovingCursor(wnd, KEY_RIGHT);
-    /*_TLC_OnEndMoving(wnd);*/
-    
-    /* open the current edit position */
-    _TLC_OnBeginEdit(wnd);
+    _TLPC_OpenEditBox(wnd, 0);
+  }
+  return nitems;
+}
+
+LONG _TLPC_OnAddItemEx(TWND wnd, LPSTR text, DWORD editstyle)
+{
+  LONG nitems = _TLPC_OnAddItem(wnd, text);
+  if (nitems > 0)
+  {
+    _TLPC_OnSetEditStyle(wnd, nitems-1, editstyle);
   }
   return nitems;
 }
@@ -1785,23 +1787,8 @@ LONG _TLPC_OnAddItem(TWND wnd, LPSTR text)
 VOID _TLPC_OnSetFocus(TWND wnd)
 {
   INT currow = -1;
-  TuiSetFocus(TLC_GetEditBox(wnd));
-  /* edit ok */
-  /* end editing from the previous */
-  _TLC_OnEndEdit(wnd, LC_ENDEDITOK);
-  
   currow = _TLC_OnGetCurRow(wnd);
   _TLPC_OnSetCurRow(wnd, currow);
-  
-  /* re-fresh window to re-calculate position */
-  TuiInvalidateWnd(wnd);
-  
-  /* move edit to the new position */
-  _TLC_OnBeginMoving(wnd);
-  _TLC_OnMovingCursor(wnd, KEY_RIGHT);
-  
-  /* open the current edit position */
-  _TLC_OnBeginEdit(wnd);
 }
 
 LONG LISTPAGECTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -1818,6 +1805,11 @@ LONG LISTPAGECTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
       _TLPC_OnKeyDown(wnd, (LONG)wparam);
       return 0;
     }
+    case TLPCM_ADDITEMEX:
+    {
+      /* support 3 columns */
+      return _TLPC_OnAddItemEx(wnd, (LPSTR)lparam, (DWORD)wparam);
+    }
     case TLPCM_ADDITEM:
     {
       /* support 3 columns */
@@ -1832,6 +1824,14 @@ LONG LISTPAGECTRLPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
       _TLPC_OnSetFocus(wnd);
       break;
+    }
+    case TLPCM_SETEDITSTYLE:
+    {
+      return _TLPC_OnSetEditStyle(wnd, (INT)wparam, (DWORD)lparam);
+    }
+    case TLPCM_GETEDITSTYLE:
+    {
+      return _TLPC_OnGetEditStyle(wnd, (INT)wparam);
     }
   }
   return LISTCTRLPROC(wnd, msg, wparam, lparam);

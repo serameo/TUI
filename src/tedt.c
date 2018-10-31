@@ -37,8 +37,20 @@ struct _TEDITSTRUCT
 typedef struct _TEDITSTRUCT _TEDIT;
 typedef struct _TEDITSTRUCT *TEDIT;
 
+#define KILO      1000
+#define MEGA      1000000
+#define GIGA      1000000000
+#define TERA      1000000000000
+#define PETA      1000000000000000
+#define EXA       1000000000000000000
+/*
+#define ZETA      1000000000000000000000
+#define YOTTA     1000000000000000000000000
+*/
 LONG _TEDT_AddDecimalFormat(TEDIT edit);
 LONG _TEDT_RemoveDecimalFormat(TEDIT edit);
+LONG _TEDT_AddSuffix(TEDIT edit, INT cols);
+LONG _TEDT_RemoveSuffix(TEDIT edit);
 
 VOID _TEDT_OnSetValidMinMax(TWND wnd, INT on, VALIDMINMAX* vmm);
 LONG _TEDT_OnCreate(TWND wnd);
@@ -144,6 +156,139 @@ LONG _TEDT_RemoveDecimalFormat(TEDIT edit)
   return TUI_OK;
 }
 
+LONG _TEDT_AddSuffix(TEDIT edit, INT cols)
+{
+  DOUBLE dbl = atof(edit->editbuf);
+  LONG len = strlen(edit->editbuf);
+  CHAR suffix[3] = { ' ', 0, 0 };
+  INT cnt = 0;
+
+  while (len > 0)
+  {
+    len -= 3;
+    ++cnt;
+  }
+  len = strlen(edit->editbuf) + cnt;
+  cnt = 0;
+
+  while (cols < len)
+  {
+    len -= 3;
+    ++cnt;
+    dbl = dbl / KILO;
+  }
+  switch (cnt)
+  {
+    case 1:
+    {
+      suffix[0] = 'K';
+      break;
+    }
+    case 2:
+    {
+      suffix[0] = 'M';
+      break;
+    }
+    case 3:
+    {
+      suffix[0] = 'G';
+      break;
+    }
+    case 4:
+    {
+      suffix[0] = 'T';
+      break;
+    }
+    case 5:
+    {
+      suffix[0] = 'P';
+      break;
+    }
+    case 6:
+    {
+      suffix[0] = 'E';
+      break;
+    }
+/*
+    case 7:
+    {
+      suffix[0] = 'Z';
+      break;
+    }
+    case 8:
+    {
+      suffix[0] = 'Y';
+      break;
+    }
+*/
+  }
+
+  if (suffix[0] != ' ')
+  {
+    sprintf(edit->editbuf, "%.*f", edit->decwidth, dbl);
+    strcat(edit->editbuf, suffix);
+  }
+  else
+  {
+    /* not support */
+    return TUI_ERROR;
+  }
+  return TUI_OK;
+}
+
+LONG _TEDT_RemoveSuffix(TEDIT edit)
+{
+  DOUBLE dbl = atof(edit->editbuf);
+  CHAR suffix = edit->editbuf[strlen(edit->editbuf) - 1];
+  switch (suffix)
+  {
+    case 'K':
+    {
+      dbl = dbl * KILO;
+      break;
+    }
+    case 'M':
+    {
+      dbl = dbl * MEGA;
+      break;
+    }
+    case 'G':
+    {
+      dbl = dbl * GIGA;
+      break;
+    }
+    case 'T':
+    {
+      dbl = dbl * TERA;
+      break;
+    }
+    case 'P':
+    {
+      dbl = dbl * PETA;
+      break;
+    }
+    case 'E':
+    {
+      dbl = dbl * EXA;
+      break;
+    }
+/*
+    case 'Z':
+    {
+      dbl = dbl * ZETA;
+      break;
+    }
+    case 'Y':
+    {
+      dbl = dbl * YOTTA;
+      break;
+    }
+*/
+  }
+  sprintf(edit->editbuf, "%.*f", edit->decwidth, dbl);
+  return TUI_OK;
+}
+
 LONG _TEDT_OnCreate(TWND wnd)
 {
   TEDIT edit = 0;
@@ -198,6 +343,10 @@ VOID _TEDT_OnSetFocus(TWND wnd)
   if (TES_AUTODECIMALCOMMA & style)
   {
     _TEDT_RemoveDecimalFormat(edit);
+    if (TES_AUTOSUFFIX & style)
+    {
+      _TEDT_RemoveSuffix(edit);
+    }
   }
   
   /* send notification */
@@ -217,6 +366,9 @@ LONG _TEDT_OnKillFocus(TWND wnd)
   DWORD style = TuiGetWndStyle(wnd);
   LONG rcminmax = TUI_CONTINUE;
   INT number = 0;
+  RECT rcwnd;
+  TuiGetWndRect(wnd, &rcwnd);
+  POS pos;
   
   edit = (TEDIT)TuiGetWndParam(wnd);
   edit->firstvisit = 1;
@@ -266,6 +418,15 @@ LONG _TEDT_OnKillFocus(TWND wnd)
   if (TES_AUTODECIMALCOMMA & style)
   {
     _TEDT_AddDecimalFormat(edit);
+    if (TES_AUTOSUFFIX & style)
+    {
+      if (rcwnd.cols < strlen(edit->editbuf))
+      {
+        _TEDT_RemoveDecimalFormat(edit);
+        _TEDT_AddSuffix(edit, rcwnd.cols);
+        _TEDT_AddDecimalFormat(edit);
+      }
+    }
   }
   /* update text */
   edit->firstchar = 0;
@@ -277,6 +438,10 @@ LONG _TEDT_OnKillFocus(TWND wnd)
   nmhdr.ctl  = wnd;
   nmhdr.code = TEN_KILLFOCUS;
   TuiPostMsg(TuiGetParent(wnd), TWM_NOTIFY, 0, (LPARAM)&nmhdr);
+
+  pos.y = rcwnd.y;
+  pos.x = rcwnd.x;
+  TuiPostMsg(TuiGetParent(wnd), TWM_SETCURSOR, 0, (LPARAM)&pos);
   
   TuiInvalidateWnd(wnd);
   return rc;
@@ -338,6 +503,7 @@ LONG _TEDT_ValidateDecimalStyle(TWND wnd, TEDIT edit, LONG ch)
 
 VOID _TEDT_OnKeyDown(TWND wnd, LONG ch)
 {
+/*
   switch (ch)
   {
     case KEY_RIGHT:
@@ -349,17 +515,9 @@ VOID _TEDT_OnKeyDown(TWND wnd, LONG ch)
     case TVK_TAB:
     case KEY_BTAB:
     case TVK_PRIOR:
-#ifdef __USE_CURSES__
     case KEY_PPAGE:
-#elif (defined __USE_QIO__ && defined __VMS__)
-    case KEY_PREV:
-#endif
     case TVK_NEXT:
-#ifdef __USE_CURSES__
     case KEY_NPAGE:
-#elif (defined __USE_QIO__ && defined __VMS__)
-    case KEY_NEXT:
-#endif
     {
       LONG rc = _TEDT_OnKillFocus(wnd);
       if (TUI_CONTINUE == rc)
@@ -369,6 +527,7 @@ VOID _TEDT_OnKeyDown(TWND wnd, LONG ch)
       break;
     }
   }
+*/
 }
 
 VOID _TEDT_OnChar(TWND wnd, LONG ch)
@@ -735,6 +894,17 @@ VOID _TEDT_OnSetText(TWND wnd, LPCSTR text)
   {
     _TEDT_RemoveDecimalFormat(edit);
     _TEDT_AddDecimalFormat(edit);
+    if (TES_AUTOSUFFIX & style)
+    {
+      RECT rcwnd;
+      TuiGetWndRect(wnd, &rcwnd);
+      if (rcwnd.cols < strlen(edit->editbuf))
+      {
+        _TEDT_RemoveDecimalFormat(edit);
+        _TEDT_AddSuffix(edit, rcwnd.cols);
+        _TEDT_AddDecimalFormat(edit);
+      }
+    }
   }
 }
 

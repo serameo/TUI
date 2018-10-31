@@ -49,28 +49,28 @@ typedef struct _TUILISTBOXSTRUCT _TLISTBOX;
 typedef struct _TUILISTBOXSTRUCT *TLISTBOX;
 
 tlistbox_t* _TLB_FindItemByIndex(TWND wnd, INT idx);
-VOID __TLB_OnSelChanged(TWND wnd);
+VOID   _TLB_OnSelChanged(TWND wnd);
 
-INT _TLB_OnCountItemCheck(TWND wnd);
-INT _TLB_OnGetItemChecked(TWND wnd, INT idx);
-INT _TLB_OnSetItemChecked(TWND wnd, INT idx, INT check);
+INT    _TLB_OnCountItemCheck(TWND wnd);
+INT    _TLB_OnGetItemChecked(TWND wnd, INT idx);
+INT    _TLB_OnSetItemChecked(TWND wnd, INT idx, INT check);
 LPVOID _TLB_OnGetItemData(TWND wnd, INT idx);
-VOID _TLB_OnSetItemData(TWND wnd, INT idx, LPVOID data);
-VOID _TLB_OnSetCurSel(TWND wnd, INT idx);
-LONG _TLB_OnGetItemCount(TWND wnd);
-VOID _TLB_OnSetItemText(TWND wnd, INT idx, LPSTR text);
-LONG _TLB_OnGetItemText(TWND wnd, INT idx, LPSTR text);
-INT _TLB_OnGetCurSel(TWND wnd);
-VOID _TLB_OnDeleteAllItems(TWND wnd);
-VOID _TLB_OnDeleteItem(TWND wnd, LONG idx);
-LONG _TLB_OnAddItem(TWND wnd, LPCSTR text);
-VOID _TLB_OnPaint(TWND wnd, TDC dc);
-VOID _TLB_OnKeyDown(TWND wnd, LONG ch);
-LONG _TLB_OnKillFocus(TWND wnd);
-VOID _TLB_OnSetFocus(TWND wnd);
-VOID _TLB_OnDestroy(TWND wnd);
-LONG _TLB_OnCreate(TWND wnd);
-LONG LISTBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
+VOID   _TLB_OnSetItemData(TWND wnd, INT idx, LPVOID data);
+VOID   _TLB_OnSetCurSel(TWND wnd, INT idx);
+LONG   _TLB_OnGetItemCount(TWND wnd);
+VOID   _TLB_OnSetItemText(TWND wnd, INT idx, LPSTR text);
+LONG   _TLB_OnGetItemText(TWND wnd, INT idx, LPSTR text);
+INT    _TLB_OnGetCurSel(TWND wnd);
+VOID   _TLB_OnDeleteAllItems(TWND wnd);
+VOID   _TLB_OnDeleteItem(TWND wnd, LONG idx);
+LONG   _TLB_OnAddItem(TWND wnd, LPCSTR text);
+VOID   _TLB_OnPaint(TWND wnd, TDC dc);
+VOID   _TLB_OnKeyDown(TWND wnd, LONG ch);
+LONG   _TLB_OnKillFocus(TWND wnd);
+VOID   _TLB_OnSetFocus(TWND wnd);
+VOID   _TLB_OnDestroy(TWND wnd);
+LONG   _TLB_OnCreate(TWND wnd);
+LONG   LISTBOXPROC(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 
 tlistbox_t* _TLB_FindItemByIndex(TWND wnd, INT idx)
@@ -167,7 +167,7 @@ LONG _TLB_OnKillFocus(TWND wnd)
   return rc;
 }
 
-VOID __TLB_OnSelChanged(TWND wnd)
+VOID _TLB_OnSelChanged(TWND wnd)
 {
   NMHDR nmhdr;
   /* send notification */
@@ -202,7 +202,7 @@ VOID _TLB_OnKeyDown(TWND wnd, LONG ch)
     }
 
     case KEY_DOWN:
-    case KEY_RIGHT:
+/*    case KEY_RIGHT:*/
     {
       ++lines;
       ++repaint;
@@ -210,7 +210,7 @@ VOID _TLB_OnKeyDown(TWND wnd, LONG ch)
     }
   
     case KEY_UP:
-    case KEY_LEFT:
+/*    case KEY_LEFT:*/
     {
       --lines;
       ++repaint;
@@ -272,7 +272,7 @@ VOID _TLB_OnKeyDown(TWND wnd, LONG ch)
     
     TuiInvalidateWnd(wnd);
     /* send notification */
-    __TLB_OnSelChanged(wnd);
+    _TLB_OnSelChanged(wnd);
   }
   lb->selitem = _TLB_FindItemByIndex(wnd, lb->cursel);
   lb->firstvisibleitem = _TLB_FindItemByIndex(wnd, lb->firstvisible);
@@ -290,6 +290,7 @@ VOID _TLB_OnPaint(TWND wnd, TDC dc)
   RECT rc;
   DWORD style = TuiGetWndStyle(wnd);
   INT lines = 0;
+  INT y, x; /* to move cursor */
   
   if (!TuiIsWndVisible(wnd))
   {
@@ -354,14 +355,28 @@ VOID _TLB_OnPaint(TWND wnd, TDC dc)
           strcat(text, item->itemtext);
           TuiPrintTextAlignment(buf, text, rc.cols, style);
           
-          TuiDrawText(dc, 
-            rc.y+(i-lb->firstvisible), 
-            rc.x, 
-            buf, 
-            (i == lb->cursel ? TuiGetReverseSysColor(COLOR_HIGHLIGHT) : attrs));
+          if (i == lb->cursel)
+          {
+            y = rc.y + (i - lb->firstvisible);
+            x = rc.x;
+            TuiDrawText(dc, 
+              rc.y+(i-lb->firstvisible), 
+              rc.x, 
+              buf, 
+              TuiReverseColor(attrs));
+          }
+          else
+          {
+            TuiDrawText(dc, 
+              rc.y+(i-lb->firstvisible), 
+              rc.x, 
+              buf, 
+              attrs);
+          }
         }
       }/* not owner draw */
     } /* for each item */
+    TuiMoveYX(dc, y, x);
   } /* items are valid */
 }
 
@@ -525,7 +540,7 @@ VOID _TLB_OnSetCurSel(TWND wnd, INT idx)
   
   TuiInvalidateWnd(wnd);
   /* send notification */
-  __TLB_OnSelChanged(wnd);
+  _TLB_OnSelChanged(wnd);
 
   lb->selitem = _TLB_FindItemByIndex(wnd, lb->cursel);
   lb->firstvisibleitem = _TLB_FindItemByIndex(wnd, lb->firstvisible);

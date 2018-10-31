@@ -55,46 +55,48 @@ FRMWNDTEMPL dlg4[] =
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-WNDTEMPL frame1[] =
+FRMWNDTEMPL frame1[] =
 {
   /* 1st object is always dialog */
-  { "mywndproc", "Dialog1", 1,  0,  0, 25, 80, TWS_WINDOW|TWS_BORDER, 0 },
+/*
+  { "mywndproc", "Dialog1", 1,  0,  0, 25, 80, TWS_WINDOW|TWS_BORDER, 0, 0, "frame" },
+*/
   /* 2nd and others are controls */
-  { STATIC, "Name:",    100,  1,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+  { STATIC, "Name:",    100,  1,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0, 0, "name" },
   { EDITBOX,   "12345678901234567890",       IDC_NAME,  1, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|
-      TES_LEFT|TES_UPPERCASE|TES_AUTOHSCROLL, 0 },
-  { STATIC, "ID:",    101,  2,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+      TES_LEFT|TES_UPPERCASE|TES_AUTOHSCROLL, 0, 0, "Name" },
+  { STATIC, "ID:",    101,  2,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0, 0, "" },
   { EDITBOX,   "DT66234",     201,  2, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|
-      TES_CENTER|TES_AUTOHSCROLL, 0 },
-  { STATIC, "Tel:",    102,  3,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+      TES_CENTER|TES_AUTOHSCROLL, 0, 0, "ID" },
+  { STATIC, "Tel:",    102,  3,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0, 0, "" },
   { EDITBOX,   "1234",   202,  3, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|
-      TES_NUMBER|TES_RIGHT|TES_AUTOHSCROLL, 0 },
-  { STATIC, "Email:",    103,  4,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+      TES_NUMBER|TES_RIGHT|TES_AUTOHSCROLL, 0, 0, "Telephone" },
+  { STATIC, "Email:",    103,  4,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0, 0, "" },
   { EDITBOX,   "abc@abc.com", 203,  4, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|
-      TES_AUTOHSCROLL, 0 },
-  { STATIC, "Password:",    104,  5,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
+      TES_AUTOHSCROLL, 0, 0, "Email" },
+  { STATIC, "Password:",    104,  5,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0, 0, "" },
   { EDITBOX,   "welcome1!", IDC_PASSWORD,  5, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|
-      TES_LEFT|TES_PASSWORD|TES_AUTOHSCROLL, 0 },
-  { STATIC, "Price:",    105,  6,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
-  { EDITBOX,   "132,399.50", IDC_PRICE,  6, 18,  1, 16, 
+      TES_LEFT|TES_PASSWORD|TES_AUTOHSCROLL, 0, 0, "Password" },
+  { STATIC, "Price:",    105,  6,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0, 0, "" },
+  { EDITBOX,   "132,399M", IDC_PRICE,  6, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|
-      TES_RIGHT|TES_AUTODECIMALCOMMA|TES_AUTOHSCROLL, 0 },
+      TES_RIGHT|TES_AUTODECIMALCOMMA|TES_AUTOHSCROLL|TES_AUTOSUFFIX, 0, 0, "Price" },
   { LISTBOX,"",               IDC_LISTBOX1,  8,  1,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_CENTER|TWS_BORDER, 0 },
+    TWS_CHILD|TWS_VISIBLE|TLBS_CENTER|TWS_BORDER, 0, 0, "List1" },
   { LISTBOX,"",               IDC_LISTBOX2,  8, 21,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_CHECKBOX|TWS_BORDER, 0 },
+    TWS_CHILD|TWS_VISIBLE|TLBS_CHECKBOX|TWS_BORDER, 0, 0, "List 2 checkbox" },
   { LISTBOX,"",               IDC_LISTBOX3,  8, 41,  5, 16, 
-    TWS_CHILD|TWS_VISIBLE|TLBS_RADIOBOX|TLBS_RIGHT|TWS_BORDER, 0 },
-  { BUTTON, "Dlg2",    IDC_OPENDLG2,  14,  1,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
-  { BUTTON, "Dlg3",    IDC_OPENDLG3,  14,  11,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
-  { BUTTON, "Dlg4",    IDC_OPENDLG4,  14,  21,  1,   10, TWS_CHILD|TWS_VISIBLE, 0 },
-  { BUTTON, "Close",    IDC_CLOSE,    14,  31,  1,  11, TWS_CHILD|TWS_VISIBLE, 0 },
-  { STATIC, "Esc to exit: ", IDC_STATUSBAR, 24,  1,  1, 79, TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|TSS_LEFT, 0 },
+    TWS_CHILD|TWS_VISIBLE|TLBS_RADIOBOX|TLBS_RIGHT|TWS_BORDER, 0, 0, "List 2 radio" },
+  { BUTTON, "Dlg2",    IDC_OPENDLG2,  14,  1,  1,   10, TWS_CHILD|TWS_VISIBLE, 0, 0, "dlg2" },
+  { BUTTON, "Dlg3",    IDC_OPENDLG3,  14,  11,  1,   10, TWS_CHILD|TWS_VISIBLE, 0, 0, "dlg3" },
+  { BUTTON, "Dlg4",    IDC_OPENDLG4,  14,  21,  1,   10, TWS_CHILD|TWS_VISIBLE, 0, 0, "dlg4" },
+  { BUTTON, "Close",    IDC_CLOSE,    14,  31,  1,  11, TWS_CHILD|TWS_VISIBLE, 0, 0, "Close" },
+  { STATIC, "Esc to exit: ", IDC_STATUSBAR, 24,  1,  1, 79, TWS_CHILD|TWS_VISIBLE|TWS_DISABLED|TSS_LEFT, 0, 0, "" },
   /* the last is the end-of-controls */
   { 0, 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -125,6 +127,12 @@ VOID mywndproc_onmbxcommand(TWND wnd, UINT cmd, UINT id)
   sprintf(buf, "cmd = %d, id = %d", cmd, id);
   TuiSetWndText(statusbar, buf);
 }
+VOID mywndproc_ondisplayinfo(TWND wnd, DISPLAYINFO* di)
+{
+  TWND statusbar = TuiGetWndItem(wnd, IDC_STATUSBAR);
+  TuiSetWndText(statusbar, di->text);
+}
+
 LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
   CHAR buf[TUI_MAX_WNDTEXT+1];
@@ -133,11 +141,17 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
   TWND listbox = 0;
   TWND edit = 0;
   NMHDR* nmhdr = 0;
+  LONG rc = TUI_CONTINUE;
 
   switch (msg)
   {
     case TWM_INITDIALOG:
     {
+      rc = TuiDefFrameWndProc(wnd, msg, wparam, lparam);
+      if (TUI_CONTINUE != rc)
+      {
+        return rc;
+      }
       listbox = TuiGetWndItem(wnd, IDC_LISTBOX1);
       for (i = 0; i < 20; ++i)
       {
@@ -162,6 +176,9 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
         TLB_AddItem(listbox, buf);
       }
 
+      edit = TuiGetWndItem(wnd, IDC_PRICE);
+      TuiSendMsg(edit, TEM_SETDECWIDTH, (WPARAM)2, (LPARAM)0);
+
       edit = TuiGetWndItem(wnd, IDC_NAME);
       TuiSendMsg(edit, TEM_LIMITTEXT, (WPARAM)20, (LPARAM)0);
       
@@ -170,12 +187,11 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
         TWM_SETTEXTATTRS, 
         (WPARAM)TuiGetColor(BLUE_YELLOW),
         (LPARAM)0);
-      edit = TuiGetWndItem(wnd, IDC_PRICE);
-      TuiSendMsg(edit, TEM_SETDECWIDTH, (WPARAM)2, (LPARAM)0);
      /* 
       edit = TuiGetWndItem(wnd, IDC_PASSWORD);
       TEDT_ShowPasswdChar(edit, TW_HIDE);*/
-      return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
+      TuiSetFocus(edit);
+      return rc;
     }
 
     case TWM_NOTIFY:
@@ -192,6 +208,14 @@ LONG mywndproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
         {
           /*RESPONSEMSGBOX* res = (RESPONSEMSGBOX*)lparam;*/
           mywndproc_onmbxcommand(wnd, nmhdr->id, nmhdr->code);
+          break;
+        }
+        case TCN_DISPLAYINFO:
+        {
+          DISPLAYINFO* di = (DISPLAYINFO*)nmhdr;
+          mywndproc_ondisplayinfo(wnd, di);
+          statusbar = TuiGetWndItem(wnd, IDC_STATUSBAR);
+          TuiSetWndText(statusbar, di->text);
           break;
         }
       }
@@ -269,46 +293,46 @@ LONG mylistpagectlproc(TWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
       list = TuiGetWndItem(wnd, IDC_LISTBOX1);
       
-      TLPC_AddItem(list, "Item #10\t""\t \t\t");
-      TLPC_AddItem(list, "Item #10\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #10\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #10\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #10\t""\t \t\t");
-      TLPC_AddItem(list, "Item #10\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #10\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #10\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #10\t""\t \t\t");
-      TLPC_AddItem(list, "Item #10\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #20\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #20\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #20\t""\t \t\t");
-      TLPC_AddItem(list, "Item #20\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #20\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #20\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #20\t""\t \t\t");
-      TLPC_AddItem(list, "Item #20\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #20\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #20\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #30\t""\t \t\t");
-      TLPC_AddItem(list, "Item #30\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #30\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #30\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #30\t""\t \t\t");
-      TLPC_AddItem(list, "Item #30\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #30\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #30\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #30\t""\t \t\t");
-      TLPC_AddItem(list, "Item #30\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #40\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #40\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #40\t""\t \t\t");
-      TLPC_AddItem(list, "Item #40\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #40\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #40\t""\t \tMins\t");
-      TLPC_AddItem(list, "Item #40\t""\t \t\t");
-      TLPC_AddItem(list, "Item #40\t""\t \tK Baht\t");
-      TLPC_AddItem(list, "Item #40\t""\t \t%%\t");
-      TLPC_AddItem(list, "Item #40\t""\t \tMins\t");
+      TLPC_AddItemEx(list, "Item #10\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #10\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #10\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #10\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #10\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #10\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #10\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #10\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #10\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #10\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #20\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #20\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #20\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #20\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #20\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #20\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #20\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #20\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #20\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #20\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #30\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #30\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #30\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #30\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #30\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #30\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #30\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #30\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #30\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #30\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #40\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #40\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #40\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #40\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #40\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #40\t""\t \tMins\t",   TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #40\t""\t \t\t",       TES_UPPERCASE);
+      TLPC_AddItemEx(list, "Item #40\t""\t \tK Baht\t", TES_NUMBER);
+      TLPC_AddItemEx(list, "Item #40\t""\t \t%%\t",     TES_AUTODECIMALCOMMA);
+      TLPC_AddItemEx(list, "Item #40\t""\t \tMins\t",   TES_NUMBER);
       
       return TuiDefFrameWndProc(wnd, msg, wparam, lparam);
     }
@@ -565,7 +589,7 @@ WNDTEMPL page2[] =
   { STATIC, "Price:",    IDC_PAGE2+5,  6,  1,  1,  16, TWS_CHILD|TWS_VISIBLE|TSS_RIGHT, 0 },
   { EDITBOX,   "132,399.50", IDC_PAGE2+6,  6, 18,  1, 16, 
     TWS_CHILD|TWS_VISIBLE|
-      TES_RIGHT|TES_AUTODECIMALCOMMA|TES_AUTOHSCROLL, 0 },
+      TES_RIGHT|TES_AUTODECIMALCOMMA|TES_AUTOHSCROLL|TES_AUTOSUFFIX, 0 },
   /* the last is the end-of-controls */
   { 0, 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -641,23 +665,25 @@ int main(int argc, char* argv[])
   TuiRegisterCls("myframepageproc", myframepageproc);
   TuiRegisterCls("mylistpagectlproc", mylistpagectlproc);
 
-  wnd = TuiCreateWndTempl(frame1, 0);
   
-  /*
-  wnd = TuiCreateFrameWnd(
-          "myframepageproc",
+  wnd = TuiCreateFrameWndEx(
+          "mywndproc",
           "frame window",
           TWS_WINDOW|TWS_VISIBLE,
+          0,
           0, 0, 25, 80,
-          framepage, 0);
-          */
+          frame1, 0);
   if (!wnd)
   {
     TuiShutdown();
     return -1;
   }
-  TuiShowWnd(wnd, 1);
+  TuiShowWnd(wnd, TW_SHOW);
+/*  TuiSetFocus(TuiGetWndItem(wnd, IDC_NAME));*/
+/*
   TuiSendMsg(wnd, TWM_SETCURPAGE, 0, 0);
+*/
+  TuiMoveYX(TuiGetDC(wnd), 0, 0);
 
   while (TuiGetMsg(&msg))
   {
