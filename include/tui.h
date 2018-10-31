@@ -168,6 +168,14 @@ struct _RECTSTRUCT
 };
 typedef struct _RECTSTRUCT RECT;
 
+/* y,x position */
+struct _POSSTRUCT
+{
+  INT y;
+  INT x;
+};
+typedef struct _POSSTRUCT POS;
+
 struct _DRAWITEMSTRUCT
 {
   INT  idx;
@@ -318,6 +326,10 @@ enum /*THEME_STANDARD*/
 #define TWM_DRAWITEM            (TWM_FIRST +   19)
 #define TWM_SETINFOTEXT         (TWM_FIRST +   20) /* set info text       */
 #define TWM_GETINFOTEXT         (TWM_FIRST +   21) /* get info text       */
+#define TWM_SHOW                (TWM_FIRST +   22) /* show window         */
+#define TWM_ENABLE              (TWM_FIRST +   23) /* enable window       */
+#define TWM_GETCURSOR           (TWM_FIRST +   24) /* get cursor          */
+#define TWM_SETCURSOR           (TWM_FIRST +   25) /* set cursor          */
 #define TWM_SHOWMSGBOX          (TWM_FIRST +  100) /* TuiDefFrameWndProc  */
 #define TWM_SHOWINPUTBOX        (TWM_FIRST +  101) /* TuiDefFrameWndProc  */
 #define TWM_SHOWLINEINPUTBOX    (TWM_FIRST +  102) /* TuiDefFrameWndProc  */
@@ -468,6 +480,7 @@ INT TuiGetCurPage(
 #define TES_AUTODECIMALCOMMA    0x02000000
 #define TES_UNDERLINE           0x04000000
 #define TES_A2Z                 0x08000000
+#define TES_AUTOSUFFIX          0x10000000
 
 #define TEM_LIMITTEXT           (TWM_USER  +    1)
 #define TEM_SETPASSWDCHAR       (TWM_USER  +    2)
@@ -751,6 +764,8 @@ do {\
 #define TLPCM_SETCURPAGE            (TLCM_SETCURPAGE)
 #define TLPCM_GETCURPAGE            (TLCM_GETCURPAGE)
 #define TLPCM_GETITEMSPERPAGE       (TLCM_GETITEMSPERPAGE)
+#define TLPCM_NEXTPAGE              (TLCM_NEXTPAGE)
+#define TLPCM_ADDITEMEX             (TLPCM_FIRST    +     1)
 #define TLPCM_LAST                  (TLPCM_FIRST    +    50)
 
 #define HEADER_CAPTION  0
@@ -759,6 +774,8 @@ do {\
 
 #define TLPC_AddItem(lc, text)    \
   TuiSendMsg(lc, TLPCM_ADDITEM, (WPARAM)0, (LPARAM)text)
+#define TLPC_AddItemEx(lc, text, style)    \
+  TuiSendMsg(lc, TLPCM_ADDITEMEX, (WPARAM)style, (LPARAM)text)
 #define TLPC_DeleteItem(lc, idx)    \
   TuiSendMsg(lc, TLPCM_DELETEITEM, (WPARAM)idx, (LPARAM))
 #define TLPC_DeleteAllItems(lc)    \
@@ -1265,11 +1282,28 @@ TWND   TuiGetFocus(TWND wnd);
  *   Move window object
  */
 LONG   TuiMoveWnd(TWND wnd, INT y, INT x, INT lines, INT cols);
+
+/*
+ * TuiGetWndClsName()
+ *   Get window class name
+ */
+LONG   TuiGetWndClsName(TWND wnd, LPSTR clsname, LONG cb);
 /*
  * TuiGetWndRect()
  *   Get window rectangle
  */
-LONG   TuiGetWndRect(TWND wnd, RECT*);
+LONG   TuiGetWndRect(TWND wnd, RECT* pos);
+/*
+ * TuiGetCursorPos()
+ *   Get cursor position
+ */
+LONG   TuiGetCursorPos(TWND wnd, POS* pos);
+/*
+ * TuiSetCursorPos()
+ *   Set cursor position
+ */
+LONG   TuiSetCursorPos(TWND wnd, POS* pos);
+
 /*
  * TuiGetWndStyle()
  *   Get window styles
@@ -1280,6 +1314,16 @@ DWORD  TuiGetWndStyle(TWND wnd);
  *   Set window styles
  */
 DWORD  TuiSetWndStyle(TWND wnd, DWORD styles);
+/*
+ * TuiGetWndStyleEx()
+ *   Get window extended styles
+ */
+DWORD  TuiGetWndStyleEx(TWND wnd);
+/*
+ * TuiSetWndStyleEx()
+ *   Set window extended styles
+ */
+DWORD  TuiSetWndStyleEx(TWND wnd, DWORD exstyles);
 /*
  * TuiGetWndTextAttrs()
  *   Get window text attributes
